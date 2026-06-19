@@ -351,6 +351,25 @@ function renderFeatureDetail(feature) {
   if (feature.id === 'geo-scene') {
     renderGeoSceneDemo();
   }
+  if (feature.id === 'operation-centric') {
+    renderJsonEditorDemo();
+  }
+}
+
+function renderJsonEditorDemo() {
+  const renderer = fieldRenderers.match({ type: 'json' });
+  if (!renderer) {
+    return;
+  }
+  const host = document.createElement('div');
+  host.className = 'json-editor-host';
+  host.appendChild(renderer.render({
+    document,
+    operationId: 'index.rebuild',
+    field: { id: 'payload', type: 'json', label: 'Operation body (shared JsonEditor)' },
+    value: '{\n  "operationId": "index.rebuild",\n  "ok": true\n}',
+  }));
+  featureDetail.appendChild(host);
 }
 
 const GEO_SCENE = {

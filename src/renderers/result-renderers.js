@@ -35,7 +35,56 @@ export function createBuiltinResultRenderers() {
         return h(doc, 'table', { class: 'opa-table' }, [head, body]);
       },
     },
+    {
+      // Newline-delimited JSON (NDJSON): one record per line. Auto-matches the
+      // ndjson content types; otherwise reachable via an explicit renderer id.
+      id: 'jsonLines',
+      canRender: (ctx) => ctx && isNdjsonContentType(ctx.contentType),
+      render: (ctx) => {
+        const doc = ctx.document;
+        const lines = String(ctx.bodyText || '').split('\n').map((line) => line.trim()).filter(Boolean);
+        if (lines.length === 0) {
+          return h(doc, 'div', { class: 'opa-jsonl opa-jsonl-empty', text: 'No lines.' });
+        }
+        return h(doc, 'div', { class: 'opa-jsonl' }, lines.map((line) => h(doc, 'div', {
+          class: 'opa-jsonl-line',
+          text: line,
+        })));
+      },
+    },
+    {
+      // Plain text response.
+      id: 'text',
+      canRender: (ctx) => ctx && isPlainTextContentType(ctx.contentType),
+      render: (ctx) => h(ctx.document, 'pre', { class: 'opa-text', text: String(ctx.bodyText || '') }),
+    },
+    {
+      // Inline SVG returned by the operation, injected as markup. Auto-matches
+      // image/svg+xml.
+      id: 'inlineSvg',
+      canRender: (ctx) => ctx && typeof ctx.contentType === 'string' && ctx.contentType.includes('svg'),
+      render: (ctx) => {
+        const doc = ctx.document;
+        const markup = String(ctx.bodyText || '');
+        if (!markup.includes('<svg')) {
+          return h(doc, 'div', { class: 'opa-inline-svg opa-inline-svg-empty', text: 'No SVG content.' });
+        }
+        return h(doc, 'div', { class: 'opa-inline-svg', innerHTML: markup });
+      },
+    },
   ];
+}
+
+function isNdjsonContentType(contentType) {
+  return typeof contentType === 'string'
+    && (contentType.includes('ndjson') || contentType.includes('jsonl'));
+}
+
+function isPlainTextContentType(contentType) {
+  return typeof contentType === 'string'
+    && contentType.startsWith('text/')
+    && !contentType.includes('html')
+    && !contentType.includes('svg');
 }
 
 function renderJsonNode(doc, value, keyLabel) {

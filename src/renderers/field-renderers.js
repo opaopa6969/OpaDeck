@@ -76,7 +76,51 @@ export function createBuiltinFieldRenderers() {
         return fieldShell(ctx, control);
       },
     },
+    {
+      // JSON editor: a textarea with live validity feedback. Raw JSON bodies are
+      // common in internal ops, so this is first-class rather than a plain
+      // textarea. It matches fields declared with type 'json'.
+      id: 'jsonEditor',
+      supports: (field) => field.type === 'json',
+      render: (ctx) => {
+        const doc = ctx.document;
+        const status = h(doc, 'p', { class: 'opa-json-status' });
+        const reflect = (text) => {
+          const result = validateJson(text);
+          status.textContent = result.message;
+          status.className = `opa-json-status ${result.state}`;
+        };
+        const control = h(doc, 'textarea', {
+          class: 'opa-json-editor',
+          name: serializedName(ctx.field),
+          placeholder: ctx.field.placeholder,
+          value: ctx.value == null ? '' : String(ctx.value),
+          on: {
+            input: (event) => {
+              reflect(event.target.value);
+              if (typeof ctx.onChange === 'function') {
+                ctx.onChange(event.target.value, ctx.field);
+              }
+            },
+          },
+        });
+        reflect(ctx.value == null ? '' : String(ctx.value));
+        return fieldShell(ctx, control, { extra: status });
+      },
+    },
   ];
+}
+
+function validateJson(text) {
+  if (!text || !text.trim()) {
+    return { state: 'empty', message: 'empty' };
+  }
+  try {
+    JSON.parse(text);
+    return { state: 'valid', message: 'valid JSON' };
+  } catch (error) {
+    return { state: 'invalid', message: `invalid JSON: ${error.message}` };
+  }
 }
 
 function fieldShell(ctx, control, options = {}) {
@@ -90,6 +134,9 @@ function fieldShell(ctx, control, options = {}) {
     : [label, control];
   if (ctx.field.description) {
     children.push(h(doc, 'p', { class: 'opa-field-desc', text: ctx.field.description }));
+  }
+  if (options.extra) {
+    children.push(options.extra);
   }
   return h(doc, 'div', {
     class: `opa-field opa-field-${ctx.field.type}`,

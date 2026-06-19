@@ -510,3 +510,52 @@ h1 {
   stroke-linecap: round;
   opacity: 0.8;
 }
+
+.json-editor-host {
+  margin-top: 16px;
+}
+
+.opa-field-label {
+  display: block;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.opa-json-editor {
+  width: 100%;
+  min-height: 96px;
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.5);
+  color: #e2e8f0;
+}
+
+.opa-json-status {
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.opa-json-status.valid {
+  color: #86efac;
+}
+
+.opa-json-status.invalid {
+  color: #fca5a5;
+}
+
+.opa-timeseries-line {
+  stroke: #a78bfa;
+  stroke-width: 1.5;
+}
+
+.opa-timeseries-point {
+  fill: #c4b5fd;
+}
+
+.opa-timeseries-axis {
+  stroke: rgba(148, 163, 184, 0.4);
+}
