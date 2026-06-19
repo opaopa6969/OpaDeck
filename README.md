@@ -7,35 +7,58 @@ OpaDeck is an operation-centric internal ops workbench with first-class data sou
 ## Docs
 
 - English:
-  - [Constitution](/tmp/OpaDeck/docs/en/CONSTITUTION.md)
-  - [Roadmap](/tmp/OpaDeck/docs/en/ROADMAP.md)
-  - [DSL](/tmp/OpaDeck/docs/en/DSL.md)
-  - [Core Model](/tmp/OpaDeck/docs/en/CORE_MODEL.md)
-  - [Extensions](/tmp/OpaDeck/docs/en/EXTENSIONS.md)
-  - [Components](/tmp/OpaDeck/docs/en/COMPONENTS.md)
-  - [Runtime Orchestration](/tmp/OpaDeck/docs/en/RUNTIME_ORCHESTRATION.md)
-  - [Implementation Status](/tmp/OpaDeck/docs/en/IMPLEMENTATION.md)
+  - [Constitution](docs/en/CONSTITUTION.md)
+  - [Roadmap](docs/en/ROADMAP.md)
+  - [DSL](docs/en/DSL.md)
+  - [Core Model](docs/en/CORE_MODEL.md)
+  - [Extensions](docs/en/EXTENSIONS.md)
+  - [Components](docs/en/COMPONENTS.md)
+  - [Runtime Orchestration](docs/en/RUNTIME_ORCHESTRATION.md)
+  - [Implementation Status](docs/en/IMPLEMENTATION.md)
 - Japanese:
-  - [憲法 / Constitution](/tmp/OpaDeck/docs/ja/CONSTITUTION.md)
-  - [ロードマップ / Roadmap](/tmp/OpaDeck/docs/ja/ROADMAP.md)
-  - [DSL](/tmp/OpaDeck/docs/ja/DSL.md)
-  - [Core Model](/tmp/OpaDeck/docs/ja/CORE_MODEL.md)
-  - [Extensions](/tmp/OpaDeck/docs/ja/EXTENSIONS.md)
-  - [コンポーネント / Components](/tmp/OpaDeck/docs/ja/COMPONENTS.md)
-  - [ランタイム構成 / Runtime Orchestration](/tmp/OpaDeck/docs/ja/RUNTIME_ORCHESTRATION.md)
-  - [実装状況 / Implementation Status](/tmp/OpaDeck/docs/ja/IMPLEMENTATION.md)
+  - [憲法 / Constitution](docs/ja/CONSTITUTION.md)
+  - [ロードマップ / Roadmap](docs/ja/ROADMAP.md)
+  - [DSL](docs/ja/DSL.md)
+  - [Core Model](docs/ja/CORE_MODEL.md)
+  - [Extensions](docs/ja/EXTENSIONS.md)
+  - [コンポーネント / Components](docs/ja/COMPONENTS.md)
+  - [ランタイム構成 / Runtime Orchestration](docs/ja/RUNTIME_ORCHESTRATION.md)
+  - [実装状況 / Implementation Status](docs/ja/IMPLEMENTATION.md)
 
 ## Issues
 
-- [Issue Index](/tmp/OpaDeck/issues/README.md)
+- [Issue Index](issues/README.md)
 
-## Note
+## Testing
 
-This is currently an incubation directory created outside the active `vacant-service` worktree to avoid conflicts with another agent.
+The runtime is plain ESM and the tests use the built-in Node test runner, so no
+dependency install is needed. **Node.js >= 18 is required** (the `node --test`
+flag does not exist on older releases).
+
+```bash
+node --version   # must print v18 or newer
+npm test         # runs `node --test`
+```
+
+If you use `nvm`, the repo ships an `.nvmrc`:
+
+```bash
+nvm use          # selects the Node version from .nvmrc
+npm test
+```
+
+You can also point at a specific interpreter without switching the default:
+
+```bash
+~/.nvm/versions/node/v22.14.0/bin/node --test
+```
+
+See [docs/en/IMPLEMENTATION.md](docs/en/IMPLEMENTATION.md) for the browser
+smoke-test checklist that complements these unit tests.
 
 ## Showcase
 
-You can serve the showcase application with:
+Serve the showcase application with:
 
 ```bash
 python3 scripts/serve.py

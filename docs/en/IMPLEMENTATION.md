@@ -119,23 +119,36 @@ Constraint:
 
 ## Verification status
 
-## Verified in this environment
+## Verified by automated tests
 
-- Python server script syntax via `py_compile`
-- static file presence
-- tour selector consistency against the HTML structure
-- validator logic exists and is referenced by the showcase
+Run on Node.js >= 18 (`npm test`, which invokes `node --test`):
 
-## Not verified in this environment
+- core validation rules (`tests/validate-app.test.js`)
+- runtime bus / clock / scheduler / selection / execution stores (`tests/runtime.test.js`)
+- typed registries (`tests/registry.test.js`)
 
-- Node-based tests
-- browser execution of the showcase
-- actual HTTP serving
+See the repository [README](../../README.md#testing) for the exact commands and
+the `.nvmrc`-based Node selection.
 
-Reason:
+## Browser smoke-test checklist
 
-- this environment does not currently provide `node` / `npm`
-- sandbox policy blocks local socket bind
+The showcase is served with `python3 scripts/serve.py` and opened at
+`http://127.0.0.1:8077/showcase/`. A short manual pass:
+
+1. The page loads with no console errors.
+2. The feature cards render and clicking a card updates the detail panel and the
+   runtime selection inspector.
+3. **Simulate run** moves the execution inspector through `running` then
+   `success`, and the event log shows `execution.started` / `execution.success`.
+4. **Validate sample app** reports the expected problem rows (or "valid").
+5. **Start tour** opens the overlay, spotlights each target, and Next/Back/Close
+   behave; the event log shows `tour.started` / `tour.stepChanged` /
+   `tour.finished`.
+
+## Not yet automated
+
+- headless browser execution of the showcase (manual checklist above stands in)
+- actual HTTP serving against a live backend
 
 ## Design judgment
 
