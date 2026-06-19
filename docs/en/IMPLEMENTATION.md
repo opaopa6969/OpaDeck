@@ -13,13 +13,15 @@ It is a snapshot of what exists now and what is still intentionally missing.
 
 Files:
 
-- [src/core/normalize-app.js](/tmp/OpaDeck/src/core/normalize-app.js)
-- [src/core/problem.js](/tmp/OpaDeck/src/core/problem.js)
-- [src/core/validate-app.js](/tmp/OpaDeck/src/core/validate-app.js)
+- [src/core/normalize-app.js](../../src/core/normalize-app.js)
+- [src/core/problem.js](../../src/core/problem.js)
+- [src/core/validate-app.js](../../src/core/validate-app.js)
 
 Current scope:
 
-- normalize group/operation relationships
+- normalize group/operation relationships (groupId is injected only when the
+  author omitted it; a declared-but-mismatched groupId is preserved so it can be
+  reported instead of silently rewritten)
 - create structured `ProblemEntry`-style objects
 - validate a basic subset of the app model
 
@@ -38,94 +40,132 @@ Validated today:
 
 Files:
 
-- [src/runtime/bus.js](/tmp/OpaDeck/src/runtime/bus.js)
-- [src/runtime/clock.js](/tmp/OpaDeck/src/runtime/clock.js)
-- [src/runtime/scheduler.js](/tmp/OpaDeck/src/runtime/scheduler.js)
-- [src/runtime/selection-store.js](/tmp/OpaDeck/src/runtime/selection-store.js)
-- [src/runtime/execution-store.js](/tmp/OpaDeck/src/runtime/execution-store.js)
-- [src/runtime/services.js](/tmp/OpaDeck/src/runtime/services.js)
+- [src/runtime/bus.js](../../src/runtime/bus.js)
+- [src/runtime/clock.js](../../src/runtime/clock.js)
+- [src/runtime/scheduler.js](../../src/runtime/scheduler.js)
+- [src/runtime/selection-store.js](../../src/runtime/selection-store.js)
+- [src/runtime/execution-store.js](../../src/runtime/execution-store.js)
+- [src/runtime/request-builder.js](../../src/runtime/request-builder.js)
+- [src/runtime/http-executor.js](../../src/runtime/http-executor.js)
+- [src/runtime/services.js](../../src/runtime/services.js)
 
 Implemented:
 
 - small typed local bus
-- system clock
-- manual test clock
+- system clock + manual test clock
 - scheduler with `after`, `every`, and `frame`
 - selection store
 - execution store with history
+- **request builder** (ISSUE-001): serializes an operation + field state into a
+  `RequestPreviewModel` (query serialization, path params, header fields,
+  raw/form bodies, content-type inference, curl)
+- **HTTP executor** (ISSUE-001): runs the preview through an injectable `fetch`
+  with AbortController-based timeout (driven by the clock) and external cancel,
+  mapping outcomes onto the execution store (success / error / timeout /
+  cancelled) and publishing the `execution.*` bus events
 - runtime service aggregation
 
-Not implemented yet:
-
-- real HTTP execution pipeline
-- cancellation/abort integration
-- persistence for history/selection
-
-## 3. Typed registries
+## 3. Typed registries and builtin renderers
 
 Files:
 
-- [src/registry/id-registry.js](/tmp/OpaDeck/src/registry/id-registry.js)
-- [src/registry/field-renderer-registry.js](/tmp/OpaDeck/src/registry/field-renderer-registry.js)
-- [src/registry/result-renderer-registry.js](/tmp/OpaDeck/src/registry/result-renderer-registry.js)
-- [src/registry/panel-renderer-registry.js](/tmp/OpaDeck/src/registry/panel-renderer-registry.js)
-- [src/registry/data-source-adapter-registry.js](/tmp/OpaDeck/src/registry/data-source-adapter-registry.js)
+- [src/registry/*.js](../../src/registry)
+- [src/renderers/*.js](../../src/renderers)
+- [src/geo/*.js](../../src/geo)
 
 Implemented:
 
-- local registration by id
-- validation of required adapter/renderer methods
-- matching helpers for field/result/data-source resolution
+- local registration by id, validation of required methods, matching helpers
+- **builtin field renderers** (ISSUE-006): `text`, `textarea`, `checkbox`,
+  `select`
+- **builtin result renderers** (ISSUE-006): `jsonFoldable` (real foldable tree),
+  `tableResult` (records -> table)
+- **builtin panel renderers** (ISSUE-006): `groupNav`, `operationTiles`,
+  `operationDetail`, `resultStack`
+- **geoScene** (ISSUE-003): a generic, data-driven SVG renderer (choropleth /
+  points / lines, pan/zoom, click selection) usable as both a result and a panel
+  renderer, with a Japan tile-cartogram preset dataset
+- `registerBuiltinRenderers()` registers the whole set
+- renderers advertise stable `[data-op-id]` / `[data-field-id]` /
+  `[data-panel-id]` targets, which the tour runtime resolves
 
-Not implemented yet:
-
-- browser-facing builtin renderer library
-- help/tour registries
-- registry capability diagnostics
-
-## 4. Showcase application
-
-Files:
-
-- [showcase/index.html](/tmp/OpaDeck/showcase/index.html)
-- [showcase/style.css](/tmp/OpaDeck/showcase/style.css)
-- [showcase/app.js](/tmp/OpaDeck/showcase/app.js)
-
-Implemented:
-
-- feature card launcher
-- selected-feature detail surface
-- runtime inspector panel
-- sample validator invocation
-- guided tour overlay
-- mock execution simulation
-
-This showcase is intentionally static and self-explanatory.
-It is meant to explain the framework to a human, not to prove every runtime edge case.
-
-## 5. Local serving helper
+## 4. DSL loader
 
 File:
 
-- [scripts/serve.py](/tmp/OpaDeck/scripts/serve.py)
+- [src/dsl/opsui.js](../../src/dsl/opsui.js)
 
-Purpose:
+Implemented (ISSUE-004):
 
-- serve the showcase directory without external dependencies
+- a tokenizer + recursive-descent parser for the documented `.opsui` subset
+  (app / datasource / group / operation / field / request / result)
+- compiles to a normalized `AppDefinition`, injects groupId, and runs
+  `validateAppDefinition` so reference problems surface as `ProblemEntry`
+- parse failures are reported as a single located `dsl.parse.error` problem
 
-Constraint:
+Not parsed yet (still authored as JS objects): layout / help / tour blocks.
 
-- the current sandbox does not permit socket bind, so the server could not be exercised here
+## 5. Tour runtime
+
+Files:
+
+- [src/tour/*.js](../../src/tour)
+
+Implemented (ISSUE-002):
+
+- `TourCommandHandlerRegistry` (resolves handlers by command kind)
+- default handlers: `focusOperation` / `focusField` / `focusPanel` (update
+  selection + resolve a stable target), `submitOperation` (delegated to the
+  host, so the tour never owns operation semantics), `waitResult` (resolves on a
+  matching execution bus event with an optional timeout)
+- `createTourRuntime` sequences a `TourSpec` from `HelpModel.tours`, emits
+  `tour.started` / `tour.stepChanged` / `tour.finished`, and is user-paced
+- a default DOM overlay
+
+## 6. Showcase application
+
+Files:
+
+- [showcase/index.html](../../showcase/index.html)
+- [showcase/style.css](../../showcase/style.css)
+- [showcase/app.js](../../showcase/app.js)
+
+Implemented:
+
+- feature card launcher and detail surface
+- runtime inspector panel
+- sample validator invocation
+- **a live Japan geoScene** for the geo-scene feature
+- result rendering through the shared `jsonFoldable` builtin (no longer a
+  hand-written JSON dump)
+- the guided tour now runs on the **shared tour runtime** + default overlay
+  instead of bespoke tour code
+
+## 7. Local serving helper
+
+File:
+
+- [scripts/serve.py](../../scripts/serve.py)
+
+Serves the showcase directory without external dependencies.
 
 ## Verification status
 
 ## Verified by automated tests
 
-Run on Node.js >= 18 (`npm test`, which invokes `node --test`):
+Run on Node.js >= 18 (`npm test`, which invokes `node --test`): 43 tests across
 
 - core validation rules (`tests/validate-app.test.js`)
-- runtime bus / clock / scheduler / selection / execution stores (`tests/runtime.test.js`)
+- runtime stores and scheduler (`tests/runtime.test.js`)
 - typed registries (`tests/registry.test.js`)
+- request builder + HTTP executor (`tests/http-executor.test.js`)
+- the `.opsui` compiler (`tests/opsui.test.js`)
+- the tour runtime (`tests/tour.test.js`)
+- the builtin renderers (`tests/renderers.test.js`)
+- the geoScene renderer + Japan preset (`tests/geo-scene.test.js`)
+
+DOM-facing renderers are exercised headlessly against a minimal fake DOM
+(`tests/helpers/fake-dom.js`).
 
 See the repository [README](../../README.md#testing) for the exact commands and
 the `.nvmrc`-based Node selection.
@@ -136,12 +176,13 @@ The showcase is served with `python3 scripts/serve.py` and opened at
 `http://127.0.0.1:8077/showcase/`. A short manual pass:
 
 1. The page loads with no console errors.
-2. The feature cards render and clicking a card updates the detail panel and the
-   runtime selection inspector.
-3. **Simulate run** moves the execution inspector through `running` then
-   `success`, and the event log shows `execution.started` / `execution.success`.
-4. **Validate sample app** reports the expected problem rows (or "valid").
-5. **Start tour** opens the overlay, spotlights each target, and Next/Back/Close
+2. Clicking a feature card updates the detail panel and the runtime selection
+   inspector; selecting **Geo Scene** draws the Japan map.
+3. **Simulate Execution** moves the execution inspector through `running` then
+   `success`, renders the response under "Latest Result", and the event log
+   shows `execution.started` / `execution.success`.
+4. **Validate Sample App** reports the expected problem rows (or "valid").
+5. **Start Tour** opens the overlay, spotlights each target, and Next/Back/Close
    behave; the event log shows `tour.started` / `tour.stepChanged` /
    `tour.finished`.
 
@@ -152,27 +193,12 @@ The showcase is served with `python3 scripts/serve.py` and opened at
 
 ## Design judgment
 
-This implementation is enough to prove that:
+This implementation is now enough to claim that:
 
-- the runtime shape is viable
-- typed registries are practical
-- execution and selection should remain explicit
-- showcase/tour can be built on top of the same minimal runtime
+- the runtime shape is viable and execution/selection stay explicit
+- typed registries are practical and carry a real builtin renderer set
+- maps are a first-class, data-driven surface (generic renderer, Japan dataset)
+- the `.opsui` compile path is proven for a narrow subset
 
-It is not yet enough to claim that:
-
-- the DSL is stable
-- the renderer contracts are final
-- the browser runtime is production-ready
-
-## Next focus
-
-The next high-value step is not more design prose.
-It is turning the current foundation into a browser-usable runtime with:
-
-1. real request execution
-2. a first browser renderer set
-3. a real `geoScene`
-4. a DSL loader or compiler
-
-The remaining work has been broken into issue documents under [`issues/`](../../issues).
+It is still not enough to claim that the DSL is complete (no layout/help/tour
+blocks yet) or that the renderer contracts are final.

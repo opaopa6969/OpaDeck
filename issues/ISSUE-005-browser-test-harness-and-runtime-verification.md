@@ -29,3 +29,7 @@ Add a practical verification path for:
 ## Notes
 
 This issue is about confidence, not product scope.
+
+## Status
+
+Resolved on branch `feat/issue-batch` (1505716). Verification path established: `npm test` on Node >= 18, `.nvmrc`, browser smoke-test checklist; baseline test failure fixed.

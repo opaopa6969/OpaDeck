@@ -34,3 +34,7 @@ Implement a reusable runtime for:
 
 The design rule is important:
 the tour runtime coordinates actions, but must not own operation semantics.
+
+## Status
+
+Resolved on branch `feat/issue-batch` (5d24e8b). Registry-driven tour command runtime (focus/submit/wait handlers), stable targets, default overlay, and showcase migration. See `src/tour/*`, `tests/tour.test.js`.

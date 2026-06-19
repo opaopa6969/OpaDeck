@@ -34,3 +34,7 @@ Implement the first builtin browser renderer set:
 ## Notes
 
 This is the issue that starts turning OpaDeck from a runtime skeleton into a usable framework.
+
+## Status
+
+Resolved on branch `feat/issue-batch` (1dcef6c). Builtin field/result/panel renderer set on a tiny DOM helper, tested via a fake DOM; showcase renders real results through them. See `src/renderers/*`, `tests/renderers.test.js`.

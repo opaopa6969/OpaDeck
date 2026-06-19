@@ -28,3 +28,7 @@ Implement a first DSL loading path with compile-time normalization.
 
 Start narrow.
 Do not attempt a full language before the runtime execution path is proven.
+
+## Status
+
+Resolved on branch `feat/issue-batch` (71d8127). `.opsui` tokenizer + parser compiling to a normalized AppDefinition with `ProblemEntry` diagnostics. See `src/dsl/opsui.js`, `examples/index-ops.opsui`, `tests/opsui.test.js`.

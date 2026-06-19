@@ -29,3 +29,7 @@ Implement a browser renderer for `geoScene` with a built-in Japan preset.
 
 This should follow the `tetsugo` lesson:
 generic renderer, Japan-specific dataset.
+
+## Status
+
+Resolved on branch `feat/issue-batch` (3af4b0e). Generic data-driven geoScene SVG renderer (choropleth/points/lines, pan/zoom, click) + Japan tile-cartogram preset; result and panel renderers. See `src/geo/*`, `tests/geo-scene.test.js`.

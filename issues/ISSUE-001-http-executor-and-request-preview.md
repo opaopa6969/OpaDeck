@@ -40,3 +40,7 @@ Implement a real request execution layer that:
 ## Notes
 
 This issue unlocks the framework as an actual operator console instead of a design prototype.
+
+## Status
+
+Resolved on branch `feat/issue-batch` (6519536). Request builder + HTTP executor with injectable fetch, timeout/cancel/error mapping, curl, and `execution.*` events. See `src/runtime/request-builder.js`, `src/runtime/http-executor.js`, `tests/http-executor.test.js`.

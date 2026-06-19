@@ -6,67 +6,66 @@ Last updated: 2026-06-19 (JST)
 
 - GitHub: https://github.com/opaopa6969/OpaDeck
 - Default branch: `main`
-- Local workspace: `/tmp/OpaDeck`
+- Local workspace: `/home/opa/work/OpaDeck`
+- Work branch: `feat/issue-batch`
 
 ## What exists
 
-- Core docs in both English and Japanese:
-  - `docs/en/*`
-  - `docs/ja/*`
-- Runtime skeleton:
-  - typed runtime bus
-  - clock and scheduler
-  - selection store
-  - execution store
-  - typed registries
-  - basic app validation
-- Showcase app:
-  - feature overview
-  - runtime inspector
-  - sample validation output
-  - guided tour overlay
-- Backlog tracked both in-repo and on GitHub:
-  - local: `issues/*.md`
-  - GitHub issues: `#1` to `#6`
+- Core docs in English and Japanese (`docs/en/*`, `docs/ja/*`).
+- Closed-core helpers: app normalization, structured problems, app validation.
+- Runtime: typed bus, clock (+ manual test clock), scheduler, selection store,
+  execution store, request builder, HTTP executor, service aggregation.
+- Typed registries plus a builtin browser renderer set (field / result / panel)
+  and a data-driven `geoScene` renderer with a Japan tile-cartogram preset.
+- A narrow `.opsui` DSL loader (tokenizer + parser + compile-time validation).
+- A registry-driven tour command runtime with a default overlay.
+- Showcase app wired onto the shared runtime, builtin result rendering, the
+  shared tour runtime, and a live Japan geoScene.
+- See `docs/en/IMPLEMENTATION.md` for the detailed status snapshot.
 
-## GitHub Issues
+## Issues — all six implemented on `feat/issue-batch`
 
-- #1 HTTP Executor And Request Preview
-- #2 Tour Command Runtime And Help Surface
-- #3 Geo Scene Renderer With Japan Preset
-- #4 DSL Loader And Compile-Time Normalization
-- #5 Browser Test Harness And Runtime Verification
-- #6 Builtin Renderer Set For Browser Runtime
+- #1 HTTP Executor And Request Preview — done
+- #2 Tour Command Runtime And Help Surface — done
+- #3 Geo Scene Renderer With Japan Preset — done
+- #4 DSL Loader And Compile-Time Normalization — done
+- #5 Browser Test Harness And Runtime Verification — done
+- #6 Builtin Renderer Set For Browser Runtime — done
 
-## Important constraints discovered
+Each `issues/ISSUE-00N-*.md` has a `## Status` footer with the resolving commit.
 
-- Normal `git push` was not usable in this environment.
-  - SSH key `id_ed25519_github_opa` authenticated as `opa-caulis`, not `opaopa6969`.
-  - `git remote-https` helper is missing from this sandbox, so HTTPS push also fails here.
-- Publication to GitHub was done through the GitHub REST API instead of a normal push.
-- `node`, `npm`, `bun`, `deno`, and `qjs` were not available here.
-- Binding a local HTTP server socket was blocked by the sandbox, so browser-level runtime checks could not be completed here.
+## Environment notes (this machine)
+
+- Node.js 18+ IS available here (nvm has v22 and v24; the default `node` is the
+  old v16, which lacks `node --test`). The repo ships `.nvmrc` (22); run
+  `nvm use && npm test`, or call a v22/v24 binary directly.
+- `git push` works: `gh` is authenticated as `opaopa6969` and the SSH remote is
+  reachable. (The previous sandbox could not push and published via the REST
+  API; that constraint no longer applies here.)
+- `python3 scripts/serve.py` can bind a socket and serve the showcase.
+
+## Divergent main — read before pushing
+
+Local `main` and `origin/main` have **unrelated histories** (no common
+ancestor) but **identical trees** — the remote was first populated through the
+GitHub REST API as a parallel mirror. The only content difference is a stray
+`scripts/__pycache__/serve.cpython-312.pyc` committed on the remote.
+
+Implication: `feat/issue-batch` cannot fast-forward onto `origin/main`.
+Reconciling the histories (e.g. force-pushing local `main`) is a destructive
+operation and must be an explicit decision.
 
 ## Verification status
 
-- Confirmed local repo is clean on `main`.
-- Confirmed GitHub repo exists and `main` was populated.
-- Confirmed GitHub issues `#1` to `#6` were created.
-- Confirmed `scripts/serve.py` compiles with `python3 -m py_compile`.
-- Static tour selector consistency was checked earlier during implementation.
+- `npm test` (Node >= 18): 43 tests passing.
+- Showcase served over HTTP and the static module graph loads (200s).
+- Browser interaction is covered by a manual smoke-test checklist in
+  `docs/en/IMPLEMENTATION.md`; no headless browser harness yet.
 
 ## Recommended next steps
 
-1. Implement the real HTTP execution path and request preview from issue `#1`.
-2. Land the tour/help runtime from issue `#2` so the showcase can use framework-native tours.
-3. Add the DSL loader and normalization pipeline from issue `#4`.
-4. Add browser-based tests once a normal JS runtime is available, per issue `#5`.
-5. Decide whether the canonical publish path should be:
-   - proper git SSH with the correct `opaopa6969` key, or
-   - GitHub CLI / HTTPS with a working `remote-https` helper.
-
-## Notes for the next agent
-
-- The local git remote is currently `origin https://github.com/opaopa6969/OpaDeck.git`.
-- If this same sandbox is used again, GitHub API publication may still be the most reliable path.
-- If a proper `git push` path is restored later, inspect local history with `git log --oneline`.
+1. Decide the publish path for the divergent history (force-push local `main`,
+   or open a PR from `feat/issue-batch`).
+2. Extend the `.opsui` DSL to layout / help / tour blocks.
+3. Add a headless browser harness to automate the showcase smoke test.
+4. Grow the renderer set (JsonEditor, inlineSvg, timeSeries) per COMPONENTS.md.
