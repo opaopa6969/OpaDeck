@@ -1,0 +1,95 @@
+# A complete OpaDeck app in .opsui: groups, a layout tree, help, and a tour.
+
+app FullOps v1 {
+  title "Full Ops"
+  defaultLayout workbench
+
+  datasource epCompanies : options.static {
+    option "10066" label "Kansai" description "default"
+    option "10067" label "Kanto"
+  }
+
+  group index {
+    label "Index"
+
+    operation registerDocuments {
+      title "Register documents"
+
+      request {
+        method POST
+        url "./api/index/registerDocuments"
+        contentType "text/plain"
+        body raw field formbody
+      }
+
+      field epCompanyId : select in query {
+        label "EP Company"
+        source epCompanies
+      }
+
+      field formbody : textarea in body {
+        label "Document JSON"
+        required true
+      }
+
+      result {
+        renderer jsonFoldable
+      }
+    }
+  }
+
+  layout workbench {
+    title "Workbench"
+    split root row {
+      sizes 1 2
+      panel nav groupNav {
+        bind group index
+        title "Operations"
+      }
+      tabs main {
+        defaultTab detail
+        panel detail operationDetail {
+          bind selection
+        }
+        panel results resultStack {
+          bind results operation registerDocuments
+        }
+      }
+    }
+  }
+
+  help {
+    entry registerHelp {
+      target operation registerDocuments
+      kind panel
+      title "Registering documents"
+      body "Paste the document JSON into the body field, then run."
+    }
+    entry bodyHelp {
+      target field registerDocuments formbody
+      kind tooltip
+      body "Raw JSON sent as text/plain."
+    }
+  }
+
+  tour overview {
+    title "Overview"
+    description "How to register documents."
+    step pick {
+      title "Pick the operation"
+      narration "Select Register documents from the nav."
+      focus operation registerDocuments
+    }
+    step fill {
+      title "Fill the body"
+      narration "Put your JSON here."
+      focus field registerDocuments formbody
+    }
+    step run {
+      title "Run and watch"
+      focus panel results
+      submit registerDocuments
+      wait result registerDocuments
+    }
+  }
+}

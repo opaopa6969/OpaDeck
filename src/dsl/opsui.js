@@ -170,9 +170,10 @@ class Parser {
       layouts: [],
       defaultLayoutId: undefined,
     };
+    const help = { entries: [], tours: [] };
     this.expect('lbrace', "'{'");
     while (this.peek().type !== 'rbrace') {
-      const keyword = this.expectAtTopLevel(['title', 'defaultLayout', 'datasource', 'group']);
+      const keyword = this.expectAtTopLevel(['title', 'defaultLayout', 'datasource', 'group', 'layout', 'help', 'tour']);
       switch (keyword.value) {
         case 'title':
           app.title = this.expect('string', 'a title string').value;
@@ -186,12 +187,24 @@ class Parser {
         case 'group':
           app.groups.push(this.parseGroup());
           break;
+        case 'layout':
+          app.layouts.push(this.parseLayout());
+          break;
+        case 'help':
+          help.entries.push(...this.parseHelpBlock());
+          break;
+        case 'tour':
+          help.tours.push(this.parseTour());
+          break;
         default:
           break;
       }
     }
     this.expect('rbrace', "'}'");
     this.expect('eof', 'end of file');
+    if (help.entries.length > 0 || help.tours.length > 0) {
+      app.help = help;
+    }
     return app;
   }
 
@@ -398,6 +411,298 @@ class Parser {
     }
     this.expect('rbrace', "'}'");
     return result;
+  }
+
+  // --- layout blocks -------------------------------------------------------
+
+  parseLayout() {
+    const id = this.expectWord().value;
+    const layout = { id, root: null };
+    this.expect('lbrace', "'{'");
+    while (this.peek().type !== 'rbrace') {
+      const keyword = this.expectAtTopLevel(['title', 'split', 'stack', 'tabs', 'panel']);
+      if (keyword.value === 'title') {
+        layout.title = this.expect('string', 'a title string').value;
+      } else {
+        if (layout.root) {
+          throw parseError(`Layout ${id} can only have one root node.`, keyword.line, keyword.column);
+        }
+        layout.root = this.parseNodeFrom(keyword);
+      }
+    }
+    this.expect('rbrace', "'}'");
+    if (!layout.root) {
+      const here = this.peek();
+      throw parseError(`Layout ${id} has no root node.`, here.line, here.column);
+    }
+    return layout;
+  }
+
+  parseNode() {
+    const keyword = this.expect('word', 'a layout node (split, stack, tabs, panel)');
+    return this.parseNodeFrom(keyword);
+  }
+
+  parseNodeFrom(keyword) {
+    switch (keyword.value) {
+      case 'split':
+        return this.parseSplit();
+      case 'stack':
+        return this.parseStack();
+      case 'tabs':
+        return this.parseTabs();
+      case 'panel':
+        return this.parsePanel();
+      default:
+        throw parseError(`Unexpected layout node '${keyword.value}'. Expected split, stack, tabs, or panel.`, keyword.line, keyword.column);
+    }
+  }
+
+  parseSplit() {
+    const id = this.expectWord().value;
+    const direction = this.expectWord();
+    if (direction.value !== 'row' && direction.value !== 'column') {
+      throw parseError(`Split direction must be row or column, found '${direction.value}'.`, direction.line, direction.column);
+    }
+    const node = { kind: 'split', id, direction: direction.value, children: [] };
+    this.expect('lbrace', "'{'");
+    while (this.peek().type !== 'rbrace') {
+      if (this.peek().type === 'word' && this.peek().value === 'sizes') {
+        this.next();
+        node.sizes = [Number(this.expectWord().value), Number(this.expectWord().value)];
+      } else {
+        node.children.push(this.parseNode());
+      }
+    }
+    this.expect('rbrace', "'}'");
+    if (node.children.length !== 2) {
+      const here = this.peek();
+      throw parseError(`Split ${id} must have exactly 2 children, found ${node.children.length}.`, here.line, here.column);
+    }
+    return node;
+  }
+
+  parseStack() {
+    const id = this.expectWord().value;
+    const node = { kind: 'stack', id, children: [] };
+    this.expect('lbrace', "'{'");
+    while (this.peek().type !== 'rbrace') {
+      if (this.peek().type === 'word' && this.peek().value === 'gap') {
+        this.next();
+        node.gap = this.expectWord().value;
+      } else {
+        node.children.push(this.parseNode());
+      }
+    }
+    this.expect('rbrace', "'}'");
+    return node;
+  }
+
+  parseTabs() {
+    const id = this.expectWord().value;
+    const node = { kind: 'tabs', id, tabs: [] };
+    this.expect('lbrace', "'{'");
+    while (this.peek().type !== 'rbrace') {
+      if (this.peek().type === 'word' && this.peek().value === 'defaultTab') {
+        this.next();
+        node.defaultTabId = this.expectWord().value;
+      } else {
+        const keyword = this.expectWord();
+        if (keyword.value !== 'panel') {
+          throw parseError(`Tabs children must be panels, found '${keyword.value}'.`, keyword.line, keyword.column);
+        }
+        node.tabs.push(this.parsePanel());
+      }
+    }
+    this.expect('rbrace', "'}'");
+    return node;
+  }
+
+  parsePanel() {
+    const id = this.expectWord().value;
+    const renderer = this.expectWord().value;
+    const node = { kind: 'panel', id, renderer, binding: { kind: 'selection' } };
+    this.expect('lbrace', "'{'");
+    while (this.peek().type !== 'rbrace') {
+      const keyword = this.expectAtTopLevel(['bind', 'title', 'collapsible', 'defaultCollapsed', 'closable', 'resizable']);
+      if (keyword.value === 'bind') {
+        node.binding = this.parsePanelBinding();
+      } else {
+        node.chrome = node.chrome || {};
+        if (keyword.value === 'title') {
+          node.chrome.title = this.expect('string', 'a title string').value;
+        } else {
+          node.chrome[keyword.value] = this.expectBoolean();
+        }
+      }
+    }
+    this.expect('rbrace', "'}'");
+    return node;
+  }
+
+  parsePanelBinding() {
+    const kindToken = this.expectWord();
+    switch (kindToken.value) {
+      case 'allGroups':
+        return { kind: 'allGroups' };
+      case 'selection':
+        return { kind: 'selection' };
+      case 'group':
+        return { kind: 'group', groupId: this.expectWord().value };
+      case 'markdown':
+        return { kind: 'markdown', content: this.expect('string', 'markdown content string').value };
+      case 'results':
+      case 'help': {
+        const scope = this.expectWord();
+        const binding = { kind: kindToken.value, scope: scope.value };
+        if (scope.value === 'operation') {
+          binding.operationId = this.expectWord().value;
+        }
+        return binding;
+      }
+      default:
+        throw parseError(`Unknown panel binding '${kindToken.value}'.`, kindToken.line, kindToken.column);
+    }
+  }
+
+  // --- help blocks ---------------------------------------------------------
+
+  parseHelpBlock() {
+    const entries = [];
+    this.expect('lbrace', "'{'");
+    while (this.peek().type !== 'rbrace') {
+      this.expectAtTopLevel(['entry']);
+      entries.push(this.parseHelpEntry());
+    }
+    this.expect('rbrace', "'}'");
+    return entries;
+  }
+
+  parseHelpEntry() {
+    const id = this.expectWord().value;
+    const entry = { id, kind: 'inline', body: '' };
+    this.expect('lbrace', "'{'");
+    while (this.peek().type !== 'rbrace') {
+      const keyword = this.expectAtTopLevel(['target', 'kind', 'title', 'body']);
+      switch (keyword.value) {
+        case 'target':
+          entry.target = this.parseHelpTarget();
+          break;
+        case 'kind':
+          entry.kind = this.expectWord().value;
+          break;
+        case 'title':
+          entry.title = this.expect('string', 'a title string').value;
+          break;
+        case 'body':
+          entry.body = this.expect('string', 'a body string').value;
+          break;
+        default:
+          break;
+      }
+    }
+    this.expect('rbrace', "'}'");
+    return entry;
+  }
+
+  parseHelpTarget() {
+    const kindToken = this.expectWord();
+    switch (kindToken.value) {
+      case 'app':
+        return { kind: 'app', appId: this.expectWord().value };
+      case 'group':
+        return { kind: 'group', groupId: this.expectWord().value };
+      case 'operation':
+        return { kind: 'operation', operationId: this.expectWord().value };
+      case 'field':
+        return { kind: 'field', operationId: this.expectWord().value, fieldId: this.expectWord().value };
+      case 'panel':
+        return { kind: 'panel', panelId: this.expectWord().value };
+      case 'result': {
+        const target = { kind: 'result' };
+        if (this.peek().type === 'word' && this.peek().value === 'operation') {
+          this.next();
+          target.operationId = this.expectWord().value;
+        }
+        return target;
+      }
+      default:
+        throw parseError(`Unknown help target '${kindToken.value}'.`, kindToken.line, kindToken.column);
+    }
+  }
+
+  // --- tour blocks ---------------------------------------------------------
+
+  parseTour() {
+    const id = this.expectWord().value;
+    const tour = { id, title: id, steps: [] };
+    this.expect('lbrace', "'{'");
+    while (this.peek().type !== 'rbrace') {
+      const keyword = this.expectAtTopLevel(['title', 'description', 'startFrom', 'step']);
+      switch (keyword.value) {
+        case 'title':
+          tour.title = this.expect('string', 'a title string').value;
+          break;
+        case 'description':
+          tour.description = this.expect('string', 'a description string').value;
+          break;
+        case 'startFrom':
+          tour.startFrom = this.expectWord().value;
+          break;
+        case 'step':
+          tour.steps.push(this.parseTourStep());
+          break;
+        default:
+          break;
+      }
+    }
+    this.expect('rbrace', "'}'");
+    return tour;
+  }
+
+  parseTourStep() {
+    const id = this.expectWord().value;
+    const step = { id, title: id, commands: [] };
+    this.expect('lbrace', "'{'");
+    while (this.peek().type !== 'rbrace') {
+      const keyword = this.expectAtTopLevel(['title', 'narration', 'focus', 'submit', 'wait']);
+      switch (keyword.value) {
+        case 'title':
+          step.title = this.expect('string', 'a title string').value;
+          break;
+        case 'narration':
+          step.narration = this.expect('string', 'a narration string').value;
+          break;
+        case 'focus':
+          step.commands.push(this.parseFocusCommand());
+          break;
+        case 'submit':
+          step.commands.push({ kind: 'submitOperation', operationId: this.expectWord().value });
+          break;
+        case 'wait':
+          this.expectAtTopLevel(['result']);
+          step.commands.push({ kind: 'waitResult', operationId: this.expectWord().value });
+          break;
+        default:
+          break;
+      }
+    }
+    this.expect('rbrace', "'}'");
+    return step;
+  }
+
+  parseFocusCommand() {
+    const target = this.expectWord();
+    switch (target.value) {
+      case 'operation':
+        return { kind: 'focusOperation', operationId: this.expectWord().value };
+      case 'field':
+        return { kind: 'focusField', operationId: this.expectWord().value, fieldId: this.expectWord().value };
+      case 'panel':
+        return { kind: 'focusPanel', panelId: this.expectWord().value };
+      default:
+        throw parseError(`focus must target operation, field, or panel; found '${target.value}'.`, target.line, target.column);
+    }
   }
 
   expectBoolean() {
