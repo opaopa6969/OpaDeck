@@ -405,3 +405,59 @@ h1 {
     max-width: none;
   }
 }
+
+/* Builtin renderer surfaces (subset used by the showcase). */
+.execution-result {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.35);
+  font-size: 13px;
+}
+
+.opa-json {
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.opa-json-children {
+  padding-left: 14px;
+  border-left: 1px solid rgba(148, 163, 184, 0.2);
+  margin-left: 4px;
+}
+
+.opa-json summary {
+  cursor: pointer;
+  color: #93c5fd;
+}
+
+.opa-json-key {
+  color: #94a3b8;
+}
+
+.opa-json-value.opa-json-string {
+  color: #86efac;
+}
+
+.opa-json-value.opa-json-number,
+.opa-json-value.opa-json-boolean {
+  color: #fbbf24;
+}
+
+.opa-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.opa-table th,
+.opa-table td {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.opa-table th {
+  background: rgba(148, 163, 184, 0.12);
+}

@@ -23,3 +23,9 @@ export * from './registry/field-renderer-registry.js';
 export * from './registry/result-renderer-registry.js';
 export * from './registry/panel-renderer-registry.js';
 export * from './registry/data-source-adapter-registry.js';
+
+export * from './renderers/dom.js';
+export * from './renderers/field-renderers.js';
+export * from './renderers/result-renderers.js';
+export * from './renderers/panel-renderers.js';
+export * from './renderers/builtins.js';

@@ -13,6 +13,7 @@ import {
   createSystemClock,
   createTourCommandHandlerRegistry,
   createTourRuntime,
+  registerBuiltinRenderers,
   validateAppDefinition,
 } from '../src/index.js';
 
@@ -172,49 +173,11 @@ const selection = createSelectionStore({ bus });
 const executions = createExecutionStore({ bus, clock, historyLimit: 8 });
 const runtime = createRuntimeServices({ bus, clock, scheduler, selection, executions });
 
+// Use the shared builtin browser renderer set instead of hand-written stubs.
 const fieldRenderers = createFieldRendererRegistry();
-fieldRenderers.register({
-  id: 'text',
-  supports(field) {
-    return field.type === 'text';
-  },
-  render() {
-    return null;
-  },
-});
-fieldRenderers.register({
-  id: 'select',
-  supports(field) {
-    return field.type === 'select';
-  },
-  render() {
-    return null;
-  },
-});
-
 const resultRenderers = createResultRendererRegistry();
-resultRenderers.register({
-  id: 'jsonFoldable',
-  canRender(ctx) {
-    return ctx.contentType === 'application/json';
-  },
-  render() {
-    return null;
-  },
-});
-resultRenderers.register({
-  id: 'geoScene',
-  canRender(ctx) {
-    return ctx.resultView && ctx.resultView.renderer === 'geoScene';
-  },
-  render() {
-    return null;
-  },
-});
-
 const panelRenderers = createPanelRendererRegistry();
-panelRenderers.register({ id: 'operationTiles', render() { return null; } });
-panelRenderers.register({ id: 'operationDetail', render() { return null; } });
+registerBuiltinRenderers({ fieldRenderers, resultRenderers, panelRenderers });
 
 const dataSourceAdapters = createDataSourceAdapterRegistry();
 dataSourceAdapters.register({
@@ -301,6 +264,7 @@ const featureGrid = document.getElementById('feature-grid');
 const featureDetail = document.getElementById('feature-detail');
 const selectionState = document.getElementById('selection-state');
 const executionState = document.getElementById('execution-state');
+const executionResult = document.getElementById('execution-result');
 const eventLog = document.getElementById('event-log');
 const validationSummary = document.getElementById('validation-summary');
 const validationProblems = document.getElementById('validation-problems');
@@ -394,6 +358,30 @@ function renderExecutionState() {
     current: executions.current(),
     history: executions.history(),
   }, null, 2);
+  renderLatestResult();
+}
+
+function renderLatestResult() {
+  const latest = executions.current() || executions.history()[0];
+  executionResult.innerHTML = '';
+  if (!latest || !latest.response) {
+    executionResult.innerHTML = '<p class="muted">No result yet. Use "Simulate Execution".</p>';
+    return;
+  }
+  const ctx = {
+    document,
+    bodyJson: latest.response.bodyJson,
+    bodyText: latest.response.bodyText,
+    contentType: latest.response.contentType,
+  };
+  // Render the real response through the shared builtin result renderer set,
+  // not a hand-written JSON dump.
+  const renderer = resultRenderers.match(ctx);
+  if (renderer) {
+    executionResult.appendChild(renderer.render(ctx));
+  } else {
+    executionResult.textContent = latest.response.bodyText || '';
+  }
 }
 
 function appendEvent(kind, message) {
