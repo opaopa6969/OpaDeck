@@ -1,0 +1,13 @@
+{
+  "name": "opadeck",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "description": "Operation-centric internal ops workbench runtime incubation",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

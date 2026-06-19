@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpaDeck Showcase</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="masthead" data-tour="masthead">
+      <div>
+        <p class="eyebrow">OpaDeck Showcase</p>
+        <h1>Run operations, not pages.</h1>
+        <p class="lede">
+          This small application explains the framework itself. It uses the OpaDeck runtime
+          services to drive selection, execution history, event logging, and a guided tour.
+        </p>
+      </div>
+      <div class="masthead-actions">
+        <button id="start-tour" class="button primary">Start Tour</button>
+        <button id="simulate-run" class="button">Simulate Execution</button>
+        <button id="validate-app" class="button ghost">Validate Sample App</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel panel-feature-list" data-tour="feature-list">
+        <div class="panel-heading">
+          <h2>Feature Cards</h2>
+          <p>Cards are launcher surfaces, not the semantic core.</p>
+        </div>
+        <div id="feature-grid" class="feature-grid"></div>
+      </section>
+
+      <section class="panel panel-detail" data-tour="feature-detail">
+        <div class="panel-heading">
+          <h2>Selected Feature</h2>
+          <p>The center panel represents an operation detail surface.</p>
+        </div>
+        <article id="feature-detail" class="feature-detail"></article>
+      </section>
+
+      <aside class="panel panel-runtime" data-tour="runtime-panel">
+        <div class="panel-heading">
+          <h2>Runtime Inspector</h2>
+          <p>Selection, execution, bus events, and sample validation all surface here.</p>
+        </div>
+
+        <div class="runtime-block">
+          <h3>Selection</h3>
+          <pre id="selection-state" class="code-box"></pre>
+        </div>
+
+        <div class="runtime-block">
+          <h3>Execution</h3>
+          <pre id="execution-state" class="code-box"></pre>
+        </div>
+
+        <div class="runtime-block">
+          <h3>Event Stream</h3>
+          <div id="event-log" class="event-log"></div>
+        </div>
+
+        <div class="runtime-block" data-tour="validation-panel">
+          <h3>Validation</h3>
+          <div id="validation-summary" class="validation-summary muted">Not run yet.</div>
+          <div id="validation-problems" class="problem-list"></div>
+        </div>
+      </aside>
+    </main>
+
+    <section class="panel lower-panel" data-tour="request-preview">
+      <div class="panel-heading">
+        <h2>Why This Matters</h2>
+        <p>The point is not UI chrome. The point is explicit runtime state and narrow contracts.</p>
+      </div>
+      <div class="principles">
+        <article>
+          <h3>Closed Core</h3>
+          <p>Definitions, bindings, validation rules, and layout AST stay coherent.</p>
+        </article>
+        <article>
+          <h3>Open Edges</h3>
+          <p>Fields, results, panels, and data sources grow via typed registries.</p>
+        </article>
+        <article>
+          <h3>Small Runtime</h3>
+          <p>A local bus, clock, scheduler, selection store, and execution store are enough.</p>
+        </article>
+        <article>
+          <h3>Geo Is First-Class</h3>
+          <p>`geoScene + japan preset` is treated as a real surface, not an incidental custom view.</p>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <div id="tour-root" class="tour-root" hidden></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
