@@ -6,7 +6,6 @@ Last updated: 2026-06-19 (JST)
 
 - GitHub: https://github.com/opaopa6969/OpaDeck
 - Default branch: `main`
-- Published commit: `9e6636f018575917245021815955a0716c6fb0c7`
 - Local workspace: `/tmp/OpaDeck`
 
 ## What exists
@@ -73,3 +72,4 @@ Last updated: 2026-06-19 (JST)
 - If a proper `git push` path is restored later, local history currently contains:
   - `a6ec194 Bootstrap OpaDeck runtime and showcase`
   - `b89391b Add handoff notes`
+  - `88f4f22 Refresh handoff status`
