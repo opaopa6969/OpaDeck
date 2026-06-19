@@ -1,5 +1,7 @@
 import {
   createDataSourceAdapterRegistry,
+  createDefaultTourCommandHandlers,
+  createDefaultTourOverlay,
   createExecutionStore,
   createFieldRendererRegistry,
   createPanelRendererRegistry,
@@ -9,6 +11,8 @@ import {
   createScheduler,
   createSelectionStore,
   createSystemClock,
+  createTourCommandHandlerRegistry,
+  createTourRuntime,
   validateAppDefinition,
 } from '../src/index.js';
 
@@ -227,6 +231,72 @@ const registrySummary = {
   dataSourceAdapters: dataSourceAdapters.list().map((item) => item.id),
 };
 
+// Tour: registry-driven handlers. The builtin focus/submit/wait handlers come
+// from the framework; the showcase adds two local handlers to demonstrate the
+// open edge (its UI side effects are not framework semantics).
+const tourHandlers = createTourCommandHandlerRegistry().registerAll(createDefaultTourCommandHandlers());
+tourHandlers.register({
+  id: 'showcase.selectFeature',
+  run(command) {
+    selectFeature(command.featureId);
+  },
+});
+tourHandlers.register({
+  id: 'showcase.runValidation',
+  run() {
+    runValidation();
+  },
+});
+
+const tourRuntime = createTourRuntime({
+  bus,
+  selection,
+  scheduler,
+  executions,
+  handlers: tourHandlers,
+  overlay: createDefaultTourOverlay({ document, root: document.getElementById('tour-root') }),
+});
+
+const SHOWCASE_TOUR = {
+  id: 'overview',
+  title: 'Overview',
+  steps: [
+    {
+      id: 'masthead',
+      title: 'The Showcase',
+      narration: 'This masthead explains the purpose of OpaDeck and exposes the main demo actions.',
+      commands: [{ kind: 'focusPanel', panelId: 'masthead' }],
+    },
+    {
+      id: 'features',
+      title: 'Feature Cards',
+      narration: 'Cards are discovery and launcher surfaces. They are useful, but they are not the semantic core.',
+      commands: [
+        { kind: 'showcase.selectFeature', featureId: 'operation-centric' },
+        { kind: 'focusPanel', panelId: 'featureCards' },
+      ],
+    },
+    {
+      id: 'runtime',
+      title: 'Runtime Services',
+      narration: 'Selection, execution, timing, and eventing stay explicit in the runtime instead of hiding in page code.',
+      commands: [
+        { kind: 'showcase.selectFeature', featureId: 'runtime-services' },
+        { kind: 'focusPanel', panelId: 'runtimeInspector' },
+      ],
+    },
+    {
+      id: 'validation',
+      title: 'Validation',
+      narration: 'The core validator runs against a sample app definition so the demo can show that structure is checked explicitly.',
+      commands: [
+        { kind: 'showcase.runValidation' },
+        { kind: 'focusPanel', panelId: 'validation' },
+      ],
+    },
+  ],
+};
+
 const featureGrid = document.getElementById('feature-grid');
 const featureDetail = document.getElementById('feature-detail');
 const selectionState = document.getElementById('selection-state');
@@ -345,7 +415,7 @@ function summarizeEvent(event) {
     case 'execution.success':
       return `Execution completed for ${event.record.operationFqid}.`;
     case 'tour.started':
-      return 'Guided tour started.';
+      return `Guided tour "${event.tour ? event.tour.title : ''}" started.`;
     case 'tour.stepChanged':
       return `Tour moved to "${event.step.title}".`;
     case 'tour.finished':
@@ -395,117 +465,11 @@ function runValidation() {
   }
 }
 
-const TOUR_STEPS = [
-  {
-    target: '[data-tour="masthead"]',
-    title: 'The Showcase',
-    body: 'This masthead explains the purpose of OpaDeck and exposes the main demo actions.',
-  },
-  {
-    target: '[data-tour="feature-list"]',
-    title: 'Feature Cards',
-    body: 'Cards are discovery and launcher surfaces. They are useful, but they are not the semantic core.',
-    onEnter() {
-      selectFeature('operation-centric');
-    },
-  },
-  {
-    target: '[data-feature-id="runtime-services"]',
-    title: 'Runtime Services',
-    body: 'Selection, execution, timing, and eventing stay explicit in the runtime instead of hiding in page code.',
-    onEnter() {
-      selectFeature('runtime-services');
-    },
-  },
-  {
-    target: '[data-tour="runtime-panel"]',
-    title: 'Runtime Inspector',
-    body: 'This panel shows the current selection, execution history, and event stream. It is the visible proof that the runtime stays small but real.',
-  },
-  {
-    target: '[data-tour="validation-panel"]',
-    title: 'Validation',
-    body: 'The core validator runs against a sample app definition so the demo can show that structure is checked explicitly.',
-    onEnter() {
-      runValidation();
-    },
-  },
-];
-
 function startTour() {
-  createTourPlayer(TOUR_STEPS, runtime).start();
-}
-
-function createTourPlayer(steps, runtimeServices) {
-  const root = document.getElementById('tour-root');
-  let index = 0;
-
-  return {
-    start() {
-      runtimeServices.bus.publish({ kind: 'tour.started' });
-      root.hidden = false;
-      renderStep();
-    },
-  };
-
-  function renderStep() {
-    const step = steps[index];
-    step.onEnter && step.onEnter();
-    runtimeServices.bus.publish({ kind: 'tour.stepChanged', step: { title: step.title, index } });
-
-    const target = document.querySelector(step.target);
-    if (!target) {
-      finish();
-      return;
-    }
-    const rect = target.getBoundingClientRect();
-    const padding = 10;
-    const cardTop = Math.min(window.innerHeight - 220, rect.bottom + 18);
-    const cardLeft = Math.min(window.innerWidth - 390, Math.max(18, rect.left));
-
-    root.innerHTML = `
-      <div class="tour-scrim"></div>
-      <div class="tour-spotlight"
-        style="top:${rect.top - padding}px;left:${rect.left - padding}px;width:${rect.width + padding * 2}px;height:${rect.height + padding * 2}px"></div>
-      <div class="tour-card" style="top:${cardTop}px;left:${cardLeft}px">
-        <p class="tour-meta">Step ${index + 1} / ${steps.length}</p>
-        <h3>${step.title}</h3>
-        <p>${step.body}</p>
-        <div class="tour-actions">
-          <button class="button ghost" data-tour-action="close">Close</button>
-          <div>
-            ${index > 0 ? '<button class="button ghost" data-tour-action="prev">Back</button>' : ''}
-            <button class="button primary" data-tour-action="next">${index === steps.length - 1 ? 'Finish' : 'Next'}</button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const close = root.querySelector('[data-tour-action="close"]');
-    const next = root.querySelector('[data-tour-action="next"]');
-    const prev = root.querySelector('[data-tour-action="prev"]');
-    close.addEventListener('click', finish);
-    next.addEventListener('click', () => {
-      if (index === steps.length - 1) {
-        finish();
-        return;
-      }
-      index++;
-      renderStep();
-    });
-    if (prev) {
-      prev.addEventListener('click', () => {
-        index = Math.max(0, index - 1);
-        renderStep();
-      });
-    }
-  }
-
-  function finish() {
-    root.hidden = true;
-    root.innerHTML = '';
-    runtimeServices.bus.publish({ kind: 'tour.finished' });
-  }
+  // The showcase no longer owns a bespoke tour player: it loads a TourSpec into
+  // the shared runtime, which sequences commands through the handler registry
+  // and drives the default overlay.
+  tourRuntime.play(SHOWCASE_TOUR);
 }
 
 function escapeHtml(text) {

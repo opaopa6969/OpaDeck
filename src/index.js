@@ -13,6 +13,11 @@ export * from './runtime/services.js';
 
 export * from './dsl/opsui.js';
 
+export * from './tour/command-handler-registry.js';
+export * from './tour/handlers.js';
+export * from './tour/runtime.js';
+export * from './tour/overlay.js';
+
 export * from './registry/id-registry.js';
 export * from './registry/field-renderer-registry.js';
 export * from './registry/result-renderer-registry.js';
