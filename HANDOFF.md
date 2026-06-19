@@ -6,7 +6,7 @@ Last updated: 2026-06-19 (JST)
 
 - GitHub: https://github.com/opaopa6969/OpaDeck
 - Default branch: `main`
-- Published commit: `e043af4bffd0b60b40bfb756ea8e755398b47b6b`
+- Published commit: `9e6636f018575917245021815955a0716c6fb0c7`
 - Local workspace: `/tmp/OpaDeck`
 
 ## What exists
@@ -68,9 +68,8 @@ Last updated: 2026-06-19 (JST)
 
 ## Notes for the next agent
 
-- The local git remote is currently:
-  - `origin https://github.com/opaopa6969/OpaDeck.git`
+- The local git remote is currently `origin https://github.com/opaopa6969/OpaDeck.git`.
 - If this same sandbox is used again, GitHub API publication may still be the most reliable path.
 - If a proper `git push` path is restored later, local history currently contains:
   - `a6ec194 Bootstrap OpaDeck runtime and showcase`
-  - `HANDOFF.md` is not yet part of a local git commit at the time this handoff file was written.
+  - `b89391b Add handoff notes`
