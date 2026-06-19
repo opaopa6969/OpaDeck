@@ -29,3 +29,7 @@ export * from './renderers/field-renderers.js';
 export * from './renderers/result-renderers.js';
 export * from './renderers/panel-renderers.js';
 export * from './renderers/builtins.js';
+
+export * from './geo/japan-preset.js';
+export * from './geo/geo-scene-renderer.js';
+export * from './geo/geo-scene-registry.js';

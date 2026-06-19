@@ -163,6 +163,6 @@ test('registerBuiltinRenderers populates every registry', () => {
   const panelRenderers = createPanelRendererRegistry();
   registerBuiltinRenderers({ fieldRenderers, resultRenderers, panelRenderers });
   assert.deepEqual(fieldRenderers.list().map((r) => r.id), ['text', 'textarea', 'checkbox', 'select']);
-  assert.deepEqual(resultRenderers.list().map((r) => r.id), ['jsonFoldable', 'tableResult']);
-  assert.deepEqual(panelRenderers.list().map((r) => r.id), ['groupNav', 'operationTiles', 'operationDetail', 'resultStack']);
+  assert.deepEqual(resultRenderers.list().map((r) => r.id), ['jsonFoldable', 'tableResult', 'geoScene']);
+  assert.deepEqual(panelRenderers.list().map((r) => r.id), ['groupNav', 'operationTiles', 'operationDetail', 'resultStack', 'geoScene']);
 });

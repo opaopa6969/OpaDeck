@@ -7,14 +7,32 @@ const PROP_KEYS = new Set([
   'disabled', 'selected', 'placeholder', 'id', 'textContent', 'innerHTML',
 ]);
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
 export function h(doc, tag, props = {}, children = []) {
-  const el = doc.createElement(tag);
+  return build(doc, doc.createElement(tag), props, children, false);
+}
+
+export function svgH(doc, tag, props = {}, children = []) {
+  const el = typeof doc.createElementNS === 'function'
+    ? doc.createElementNS(SVG_NS, tag)
+    : doc.createElement(tag);
+  return build(doc, el, props, children, true);
+}
+
+function build(doc, el, props, children, isSvg) {
   for (const [key, value] of Object.entries(props || {})) {
     if (value == null) {
       continue;
     }
     if (key === 'class') {
-      el.className = value;
+      // SVG elements expose a read-only className; always set the attribute for
+      // them, while HTML keeps the fast property path.
+      if (isSvg) {
+        el.setAttribute('class', value);
+      } else {
+        el.className = value;
+      }
     } else if (key === 'text') {
       el.textContent = String(value);
     } else if (key === 'dataset') {

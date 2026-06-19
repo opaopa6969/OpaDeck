@@ -461,3 +461,52 @@ h1 {
 .opa-table th {
   background: rgba(148, 163, 184, 0.12);
 }
+
+.geo-scene-host {
+  margin-top: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.opa-geo {
+  display: block;
+  max-width: 360px;
+  margin: 0 auto;
+  touch-action: none;
+}
+
+.opa-geo-region {
+  fill: rgba(148, 163, 184, 0.18);
+  stroke: rgba(148, 163, 184, 0.35);
+  stroke-width: 0.5;
+  cursor: pointer;
+}
+
+.opa-geo-region:hover {
+  stroke: #93c5fd;
+  stroke-width: 1.2;
+}
+
+.opa-geo-choropleth {
+  pointer-events: none;
+}
+
+.opa-geo-point {
+  fill: #f97316;
+  stroke: #fff7ed;
+  stroke-width: 1;
+}
+
+.opa-geo-point-label {
+  fill: #e2e8f0;
+  font-size: 8px;
+}
+
+.opa-geo-line {
+  stroke: #38bdf8;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.8;
+}

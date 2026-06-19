@@ -85,6 +85,9 @@ class FakeElement extends FakeNode {
     if (name === 'id') {
       this.id = String(value);
     }
+    if (name === 'class') {
+      this.className = String(value);
+    }
   }
 
   getAttribute(name) {
@@ -236,6 +239,9 @@ export function createFakeDocument() {
   const byId = new Map();
   return {
     createElement(tag) {
+      return new FakeElement(tag);
+    },
+    createElementNS(_ns, tag) {
       return new FakeElement(tag);
     },
     createTextNode(text) {

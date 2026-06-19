@@ -14,6 +14,7 @@ import {
   createTourCommandHandlerRegistry,
   createTourRuntime,
   registerBuiltinRenderers,
+  renderGeoScene,
   validateAppDefinition,
 } from '../src/index.js';
 
@@ -347,6 +348,50 @@ function renderFeatureDetail(feature) {
     <pre class="feature-code">${escapeHtml(feature.sample)}</pre>
     ${extra}
   `;
+  if (feature.id === 'geo-scene') {
+    renderGeoSceneDemo();
+  }
+}
+
+const GEO_SCENE = {
+  baseMap: 'japan',
+  layers: [
+    { kind: 'choropleth', source: 'prefStats', keyField: 'pref', valueField: 'count' },
+    { kind: 'points', source: 'offices', labelField: 'label' },
+    { kind: 'lines', source: 'routes', fromField: 'from', toField: 'to' },
+  ],
+};
+
+const GEO_DATA = {
+  prefStats: [
+    { pref: 1, name: 'Hokkaido', count: 18 },
+    { pref: 13, name: 'Tokyo', count: 92 },
+    { pref: 23, name: 'Aichi', count: 47 },
+    { pref: 27, name: 'Osaka', count: 71 },
+    { pref: 40, name: 'Fukuoka', count: 33 },
+    { pref: 47, name: 'Okinawa', count: 9 },
+  ],
+  offices: [
+    { lat: 35.68, lng: 139.69, label: 'Tokyo' },
+    { lat: 34.69, lng: 135.5, label: 'Osaka' },
+  ],
+  routes: [
+    { from: 13, to: 27 },
+    { from: 13, to: 1 },
+  ],
+};
+
+function renderGeoSceneDemo() {
+  const host = document.createElement('div');
+  host.className = 'geo-scene-host';
+  const svg = renderGeoScene({
+    document,
+    scene: GEO_SCENE,
+    data: GEO_DATA,
+    onSelect: (code, region) => appendEvent('geoScene.select', `Selected prefecture ${code} (${region.name}).`),
+  });
+  host.appendChild(svg);
+  featureDetail.appendChild(host);
 }
 
 function renderSelectionState() {
