@@ -1,0 +1,59 @@
+# A minimal OpaDeck app expressed in the .opsui DSL.
+# Compile it with compileOpsui() from src/dsl/opsui.js.
+
+app IndexOps v1 {
+  title "Index Operations"
+  defaultLayout opsWorkbench
+
+  datasource epCompanies : options.static {
+    option "10066" label "Kansai" description "default"
+    option "10067" label "Kanto"
+  }
+
+  group index {
+    label "Index"
+
+    operation registerDocuments {
+      title "Register documents"
+
+      request {
+        method POST
+        url "./api/index/registerDocuments"
+        contentType "text/plain"
+        body raw field formbody
+      }
+
+      field epCompanyId : select in query {
+        label "EP Company"
+        source epCompanies
+      }
+
+      field formbody : textarea in body {
+        label "Document JSON"
+        required true
+      }
+
+      result {
+        renderer auto
+      }
+    }
+
+    operation search {
+      title "Search documents"
+
+      request {
+        method GET
+        url "./api/index/search"
+      }
+
+      field q : text in query {
+        label "Query"
+        name "query"
+      }
+
+      result {
+        renderer tableResult
+      }
+    }
+  }
+}

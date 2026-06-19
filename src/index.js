@@ -11,6 +11,8 @@ export * from './runtime/request-builder.js';
 export * from './runtime/http-executor.js';
 export * from './runtime/services.js';
 
+export * from './dsl/opsui.js';
+
 export * from './registry/id-registry.js';
 export * from './registry/field-renderer-registry.js';
 export * from './registry/result-renderer-registry.js';
