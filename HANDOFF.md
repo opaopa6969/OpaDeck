@@ -69,7 +69,4 @@ Last updated: 2026-06-19 (JST)
 
 - The local git remote is currently `origin https://github.com/opaopa6969/OpaDeck.git`.
 - If this same sandbox is used again, GitHub API publication may still be the most reliable path.
-- If a proper `git push` path is restored later, local history currently contains:
-  - `a6ec194 Bootstrap OpaDeck runtime and showcase`
-  - `b89391b Add handoff notes`
-  - `88f4f22 Refresh handoff status`
+- If a proper `git push` path is restored later, inspect local history with `git log --oneline`.
