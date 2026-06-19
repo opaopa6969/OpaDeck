@@ -7,6 +7,8 @@ export * from './runtime/clock.js';
 export * from './runtime/scheduler.js';
 export * from './runtime/selection-store.js';
 export * from './runtime/execution-store.js';
+export * from './runtime/request-builder.js';
+export * from './runtime/http-executor.js';
 export * from './runtime/services.js';
 
 export * from './registry/id-registry.js';
