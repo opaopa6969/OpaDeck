@@ -9,5 +9,8 @@
   },
   "scripts": {
     "test": "node --test"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
   }
 }
