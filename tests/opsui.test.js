@@ -46,6 +46,43 @@ test('compiles the example .opsui into a normalized, valid AppDefinition', () =>
   assert.deepEqual(companies.staticOptions[0], { value: '10066', label: 'Kansai', description: 'default' });
 });
 
+test('fieldset + include desugars into plain operation fields', () => {
+  const source = `
+app Demo v1 {
+  fieldset addr {
+    field zip : text in query { label "郵便番号" default "1450065" }
+    field c1 : text in query { label "国域1" }
+  }
+  group g {
+    operation a {
+      request { method GET url "/a" }
+      include addr
+    }
+    operation b {
+      request { method GET url "/b" }
+      field q : text in query {}
+      include addr
+    }
+  }
+}`;
+  const { app, problems } = compileOpsui(source);
+  assert.equal(problems.length, 0, JSON.stringify(problems, null, 2));
+  const [a, b] = app.groups[0].operations;
+  // Each operation owns an independent copy of the fragment's plain fields.
+  assert.deepEqual(a.fields.map((f) => f.id), ['zip', 'c1']);
+  assert.deepEqual(b.fields.map((f) => f.id), ['q', 'zip', 'c1']);
+  assert.equal(a.fields[0].defaultValue, '1450065');
+  a.fields[0].defaultValue = 'mutated';
+  assert.equal(b.fields[1].defaultValue, '1450065'); // independent copy
+});
+
+test('include of an unknown fieldset is a located parse error', () => {
+  const { app, problems } = compileOpsui('app Demo v1 {\n  group g {\n    operation a {\n      request { method GET url "/a" }\n      include nope\n    }\n  }\n}');
+  assert.equal(app, null);
+  assert.equal(problems[0].code, 'dsl.parse.error');
+  assert.match(problems[0].message, /Unknown fieldset 'nope'/);
+});
+
 test('surfaces reference problems through validateAppDefinition', () => {
   const source = `
 app Demo v1 {

@@ -13,7 +13,9 @@
 
 It is not a generic form DSL. It is an operation-centric internal ops UI DSL.
 
-## Core blocks
+## Blocks
+
+Core blocks (the closed semantic core):
 
 - `app`
 - `datasource`
@@ -22,6 +24,10 @@ It is not a generic form DSL. It is an operation-centric internal ops UI DSL.
 - `field`
 - `request`
 - `result`
+
+Companion blocks (optional, **not** part of the core — see `CORE_MODEL.md`). The
+parser understands them, but they describe companion layers, not core meaning:
+
 - `help`
 - `tour`
 - `layout`

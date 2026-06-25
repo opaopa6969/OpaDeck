@@ -9,41 +9,49 @@ roadmap ではない。
 
 ## 現在実装されているもの
 
-## 1. Closed-core helper
+## 1. Closed-core helper + companion validator
 
-file:
+closed core は意図的に狭く、app / group / operation / request / field / datasource だけを知る。
+layout / help / tour / geoScene の検証は companion モジュールに分離し、`validateApp` が合成する。
+境界テスト(`tests/core-boundary.test.js`)が「`src/core/` は companion/edge を import しない」ことを機械的に保証する。
 
-- [src/core/normalize-app.js](/tmp/OpaDeck/src/core/normalize-app.js)
-- [src/core/problem.js](/tmp/OpaDeck/src/core/problem.js)
-- [src/core/validate-app.js](/tmp/OpaDeck/src/core/validate-app.js)
+core file:
 
-現在の scope:
+- [src/core/normalize-app.js](../../src/core/normalize-app.js) — groups + dataSources のみ normalize
+- [src/core/problem.js](../../src/core/problem.js)
+- [src/core/ids.js](../../src/core/ids.js) — 共有 id/ref helper(core と companion が再利用)
+- [src/core/validate-app.js](../../src/core/validate-app.js) — `validateAppDefinition`(core チェックのみ)
 
-- group/operation 関係の normalize
-- structured な `ProblemEntry` 相当 object の生成
-- app model の一部 basic validation
+companion validator + 合成:
 
-いま検証しているもの:
+- [src/layout/validate-layout.js](../../src/layout/validate-layout.js) — `validateLayouts`
+- [src/help/validate-help.js](../../src/help/validate-help.js) — `validateHelp`(help + tour)
+- [src/geo/validate-geo.js](../../src/geo/validate-geo.js) — `validateGeoScene`
+- [src/validate.js](../../src/validate.js) — `validateApp` が core + companion を合成
+
+`validateAppDefinition`(core)が検証するもの:
 
 - id 重複
 - operation/group mismatch
 - raw body field の欠落
 - field datasource 参照欠落
-- geoScene の最低要件
-- layout binding 不正
-- help target 不正
-- tour target 不正
+
+`validateApp` が追加で検証するもの(app が同梱していれば):
+
+- layout/panel binding 不正(layout companion)
+- help target / tour target 不正(help companion)
+- geoScene options/layers の最低要件(geo companion)
 
 ## 2. Runtime service
 
 file:
 
-- [src/runtime/bus.js](/tmp/OpaDeck/src/runtime/bus.js)
-- [src/runtime/clock.js](/tmp/OpaDeck/src/runtime/clock.js)
-- [src/runtime/scheduler.js](/tmp/OpaDeck/src/runtime/scheduler.js)
-- [src/runtime/selection-store.js](/tmp/OpaDeck/src/runtime/selection-store.js)
-- [src/runtime/execution-store.js](/tmp/OpaDeck/src/runtime/execution-store.js)
-- [src/runtime/services.js](/tmp/OpaDeck/src/runtime/services.js)
+- [src/runtime/bus.js](../../src/runtime/bus.js)
+- [src/runtime/clock.js](../../src/runtime/clock.js)
+- [src/runtime/scheduler.js](../../src/runtime/scheduler.js)
+- [src/runtime/selection-store.js](../../src/runtime/selection-store.js)
+- [src/runtime/execution-store.js](../../src/runtime/execution-store.js)
+- [src/runtime/services.js](../../src/runtime/services.js)
 
 実装済み:
 
@@ -65,11 +73,11 @@ file:
 
 file:
 
-- [src/registry/id-registry.js](/tmp/OpaDeck/src/registry/id-registry.js)
-- [src/registry/field-renderer-registry.js](/tmp/OpaDeck/src/registry/field-renderer-registry.js)
-- [src/registry/result-renderer-registry.js](/tmp/OpaDeck/src/registry/result-renderer-registry.js)
-- [src/registry/panel-renderer-registry.js](/tmp/OpaDeck/src/registry/panel-renderer-registry.js)
-- [src/registry/data-source-adapter-registry.js](/tmp/OpaDeck/src/registry/data-source-adapter-registry.js)
+- [src/registry/id-registry.js](../../src/registry/id-registry.js)
+- [src/registry/field-renderer-registry.js](../../src/registry/field-renderer-registry.js)
+- [src/registry/result-renderer-registry.js](../../src/registry/result-renderer-registry.js)
+- [src/registry/panel-renderer-registry.js](../../src/registry/panel-renderer-registry.js)
+- [src/registry/data-source-adapter-registry.js](../../src/registry/data-source-adapter-registry.js)
 
 実装済み:
 
@@ -87,9 +95,9 @@ file:
 
 file:
 
-- [showcase/index.html](/tmp/OpaDeck/showcase/index.html)
-- [showcase/style.css](/tmp/OpaDeck/showcase/style.css)
-- [showcase/app.js](/tmp/OpaDeck/showcase/app.js)
+- [showcase/index.html](../../showcase/index.html)
+- [showcase/style.css](../../showcase/style.css)
+- [showcase/app.js](../../showcase/app.js)
 
 実装済み:
 
@@ -107,7 +115,7 @@ runtime の全 edge case を証明するためのものではない。
 
 file:
 
-- [scripts/serve.py](/tmp/OpaDeck/scripts/serve.py)
+- [scripts/serve.py](../../scripts/serve.py)
 
 目的:
 

@@ -9,7 +9,21 @@
 - core は意味を定義する
 - registry は edge の描画や統合を定義する
 
-アプリの semantic truth に属する型はここに置く。
+アプリの semantic truth に属する型だけをここに置く。**core は operation を実行する意味に集中する**。
+
+## Companion layers(optional / non-core)
+
+次は closed core には**含めない**。operation core の上に載る optional な companion 層であり、
+型の詳細は `EXTENSIONS.md` と各 companion モジュールが持つ。core はこれらを知らない。
+
+- **layout**(presentation tree: `RenderNode` / `PanelBinding` / `PanelChrome`) — `src/layout/`
+- **help / tour**(`HelpModel` / `HelpEntry` / `HelpTarget` / `HelpWhen` / `OperationHelpBlock` / `TourSpec` / `TourStep` / `TourCommand`) — `src/help/`
+- **geoScene**(`GeoSceneDefinition` 一式) — result renderer の一実装。`src/geo/`
+- **card**(`CardSpec`)、operation/group の `icon` / `tone` / `featured` / `tags` — launcher/discovery 用の表示メタ
+- **UI selection**(`UiSelection`) — runtime/UI 層の共有状態
+
+app オブジェクトはこれらを optional に同梱してよいが、検証は core ではなく companion validator が行う
+(`validateLayouts` / `validateHelp` / `validateGeoScene`。`validateApp` が合成する。下記「core の境界」参照)。
 
 ## Top-level model
 
@@ -20,9 +34,6 @@ interface AppDefinition {
   title: string;
   groups: GroupDefinition[];
   dataSources: DataSourceDefinition[];
-  layouts: LayoutDefinition[];
-  defaultLayoutId: string;
-  help?: HelpModel;
 }
 ```
 
@@ -35,8 +46,6 @@ interface GroupDefinition {
   id: string;
   label: string;
   summary?: string;
-  icon?: string;
-  card?: CardSpec;
   operations: OperationDefinition[];
 }
 ```
@@ -51,15 +60,9 @@ interface OperationDefinition {
   groupId: string;
   title: string;
   summary?: string;
-  icon?: string;
-  tone?: 'default' | 'info' | 'success' | 'warning' | 'danger';
-  featured?: boolean;
-  tags?: string[];
   request: RequestDefinition;
   fields: FieldDefinition[];
   result?: ResultViewDefinition;
-  help?: OperationHelpBlock;
-  card?: CardSpec;
 }
 ```
 
@@ -211,232 +214,17 @@ interface OptionItem {
 
 ```ts
 interface ResultViewDefinition {
-  renderer: ResultRendererId;
-  options?: Record<string, unknown>;
-}
-
-type ResultRendererId =
-  | 'auto'
-  | 'jsonFoldable'
-  | 'jsonLines'
-  | 'htmlFrame'
-  | 'inlineSvg'
-  | 'tableResult'
-  | 'geoScene'
-  | 'text'
-  | 'custom';
-```
-
-`renderer === 'geoScene'` のとき、`options` は `GeoSceneDefinition` に従うべき。
-
-```ts
-interface GeoSceneDefinition {
-  baseMap: string; // 例: "japan"
-  layers: GeoLayerDefinition[];
-  initialView?: GeoViewState;
-  selectionMode?: 'none' | 'single' | 'multiple';
-}
-
-type GeoLayerDefinition =
-  | GeoChoroplethLayer
-  | GeoPointsLayer
-  | GeoLinesLayer;
-
-interface GeoChoroplethLayer {
-  kind: 'choropleth';
-  source: string;
-  keyField: string;
-  valueField: string;
-  palette?: string;
-}
-
-interface GeoPointsLayer {
-  kind: 'points';
-  source: string;
-  xField?: string;
-  yField?: string;
-  latField?: string;
-  lngField?: string;
-  labelField?: string;
-}
-
-interface GeoLinesLayer {
-  kind: 'lines';
-  source: string;
-  fromField: string;
-  toField: string;
-}
-
-interface GeoViewState {
-  x?: number;
-  y?: number;
-  zoom?: number;
+  renderer: string;            // open な registry id(EXTENSIONS の registry で登録)
+  options?: unknown;           // renderer 自身が解釈・検証する。core は不透明として扱う
 }
 ```
 
-## Help model
+`renderer` は closed enum ではなく **open な文字列 id**。core は値を解釈しない。
+組み込み renderer(`tableResult` / `jsonFoldable` / `geoScene` など)も同じ仕組みで登録される
+edge であって、core の一部ではない(`EXTENSIONS.md` 参照)。
 
-```ts
-interface HelpModel {
-  entries: HelpEntry[];
-  tours: TourSpec[];
-}
-
-interface OperationHelpBlock {
-  title?: string;
-  body?: string;
-  danger?: string;
-}
-```
-
-### Help entry
-
-```ts
-interface HelpEntry {
-  id: string;
-  target: HelpTarget;
-  kind: 'inline' | 'tooltip' | 'panel' | 'empty-state' | 'danger' | 'troubleshooting';
-  title?: string;
-  body: string;
-  when?: HelpWhen;
-}
-
-type HelpTarget =
-  | { kind: 'app'; appId: string }
-  | { kind: 'group'; groupId: string }
-  | { kind: 'operation'; operationId: string }
-  | { kind: 'field'; operationId: string; fieldId: string }
-  | { kind: 'panel'; panelId: string }
-  | { kind: 'result'; operationId?: string };
-
-interface HelpWhen {
-  mode?: 'always' | 'idle' | 'error' | 'success' | 'empty';
-  validationCodes?: string[];
-  resultStatuses?: number[];
-}
-```
-
-## Tour model
-
-```ts
-interface TourSpec {
-  id: string;
-  title: string;
-  description?: string;
-  startFrom?: 'current-state' | 'known-state';
-  steps: TourStep[];
-}
-
-interface TourStep {
-  id: string;
-  title: string;
-  narration?: string;
-  commands: TourCommand[];
-}
-```
-
-tour command の実行は semantic/help model に属するが、実行ロジック自体は extension registry 側で処理する。
-
-## Layout model
-
-layout は semantic truth ではない。presentation tree である。
-
-```ts
-interface LayoutDefinition {
-  id: string;
-  title?: string;
-  root: RenderNode;
-}
-
-type RenderNode =
-  | SplitNode
-  | StackNode
-  | TabsNode
-  | PanelNode;
-
-interface SplitNode {
-  kind: 'split';
-  id: string;
-  direction: 'row' | 'column';
-  sizes?: [number, number];
-  children: [RenderNode, RenderNode];
-}
-
-interface StackNode {
-  kind: 'stack';
-  id: string;
-  gap?: 'none' | 'sm' | 'md' | 'lg';
-  children: RenderNode[];
-}
-
-interface TabsNode {
-  kind: 'tabs';
-  id: string;
-  defaultTabId?: string;
-  tabs: PanelNode[];
-}
-
-interface PanelNode {
-  kind: 'panel';
-  id: string;
-  renderer: PanelRendererId;
-  binding: PanelBinding;
-  props?: Record<string, unknown>;
-  chrome?: PanelChrome;
-}
-```
-
-### Panel binding
-
-```ts
-type PanelBinding =
-  | { kind: 'allGroups' }
-  | { kind: 'group'; groupId: string }
-  | { kind: 'selection' }
-  | { kind: 'results'; scope: 'global' | 'selection' | 'operation'; operationId?: string }
-  | { kind: 'help'; scope: 'app' | 'selection' | 'operation'; operationId?: string }
-  | { kind: 'markdown'; content: string };
-
-interface PanelChrome {
-  title?: string;
-  icon?: string;
-  collapsible?: boolean;
-  defaultCollapsed?: boolean;
-  closable?: boolean;
-  resizable?: boolean;
-  minSize?: number;
-}
-```
-
-## Card metadata
-
-card は primary interaction ではなく、launcher/discovery 用メタデータ。
-
-```ts
-interface CardSpec {
-  title: string;
-  summary?: string;
-  tone?: 'default' | 'info' | 'success' | 'warning' | 'danger';
-  icon?: string;
-  badge?: string;
-  featured?: boolean;
-  tags?: string[];
-}
-```
-
-## UI selection model
-
-selection は panel-local state ではなく app 全体の共有状態。
-
-```ts
-interface UiSelection {
-  groupId: string | null;
-  operationId: string | null;
-  fieldId: string | null;
-  resultId: string | null;
-  panelId: string | null;
-}
-```
+`options` の意味は各 renderer が定義する。たとえば geoScene renderer は `GeoSceneDefinition`
+(baseMap / layers …)を期待し、その検証は geo companion(`validateGeoScene`)が担う。core は関与しない。
 
 ## Problem contract
 
@@ -462,15 +250,21 @@ type ProblemTarget =
 
 ## Core validation target
 
-少なくとも次を検証する必要がある。
+**core(`validateAppDefinition`)が検証するのは次だけ。**
 
-- id 重複
-- 参照切れ
-- body field 参照不正
-- panel binding 不正
-- datasource dependency cycle
-- help target 不正
-- tour target 不正
+- id 重複(group / operation / field / datasource)
+- groupId mismatch
+- body field 参照切れ(`rawField`)
+- field の datasource 参照切れ
+
+companion 層の検証は core の外に分離されている。`validateApp`(`src/validate.js`)が
+app の同梱内容に応じて合成する。
+
+- **layout binding 不正** → `validateLayouts`(`src/layout/validate-layout.js`)
+- **help target 不正 / tour target 不正** → `validateHelp`(`src/help/validate-help.js`)
+- **geoScene options 不正** → `validateGeoScene`(`src/geo/validate-geo.js`)
+
+DSL コンパイラ(`compileOpsui`)と showcase は full な診断のため `validateApp` を呼ぶ。
 
 ## core の境界
 
@@ -478,11 +272,11 @@ type ProblemTarget =
 
 - app/group/operation/field/datasource model
 - request contract
-- result-view contract
-- help/tour model
-- layout AST
-- selection model
-- validation rules
+- result-view contract(renderer は open id)
+- validation rules(上記 core 分のみ)
+
+layout / help / tour / geoScene / card / selection は core ではなく companion 層
+(冒頭「Companion layers」参照)。
 
 ### Runtime 側の companion model
 

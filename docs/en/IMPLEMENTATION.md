@@ -9,32 +9,40 @@ It is a snapshot of what exists now and what is still intentionally missing.
 
 ## Implemented now
 
-## 1. Closed-core helpers
+## 1. Closed-core helpers + companion validators
 
-Files:
+The closed core is intentionally narrow: it only knows app / group / operation /
+request / field / datasource. Layout, help, tour, and geoScene checks live in
+their own companion modules and are composed by `validateApp`. A boundary test
+(`tests/core-boundary.test.js`) enforces that `src/core/` never imports a
+companion/edge module.
 
-- [src/core/normalize-app.js](../../src/core/normalize-app.js)
+Core files:
+
+- [src/core/normalize-app.js](../../src/core/normalize-app.js) — normalizes only groups + dataSources
 - [src/core/problem.js](../../src/core/problem.js)
-- [src/core/validate-app.js](../../src/core/validate-app.js)
+- [src/core/ids.js](../../src/core/ids.js) — shared id/ref helpers (used by core and companions)
+- [src/core/validate-app.js](../../src/core/validate-app.js) — `validateAppDefinition`, core checks only
 
-Current scope:
+Companion validators + composition:
 
-- normalize group/operation relationships (groupId is injected only when the
-  author omitted it; a declared-but-mismatched groupId is preserved so it can be
-  reported instead of silently rewritten)
-- create structured `ProblemEntry`-style objects
-- validate a basic subset of the app model
+- [src/layout/validate-layout.js](../../src/layout/validate-layout.js) — `validateLayouts`
+- [src/help/validate-help.js](../../src/help/validate-help.js) — `validateHelp` (help + tour)
+- [src/geo/validate-geo.js](../../src/geo/validate-geo.js) — `validateGeoScene`
+- [src/validate.js](../../src/validate.js) — `validateApp` composes core + companions
 
-Validated today:
+`validateAppDefinition` validates today:
 
 - duplicate ids
 - operation/group mismatches
 - missing raw body fields
 - missing field data-source references
-- basic geoScene requirements
-- invalid layout bindings
-- invalid help targets
-- invalid tour targets
+
+`validateApp` additionally runs (when the app carries them):
+
+- invalid layout/panel bindings (layout companion)
+- invalid help targets and tour targets (help companion)
+- geoScene options/layers requirements (geo companion)
 
 ## 2. Runtime services
 
@@ -95,15 +103,16 @@ File:
 
 - [src/dsl/opsui.js](../../src/dsl/opsui.js)
 
-Implemented (ISSUE-004):
+Implemented (ISSUE-004, ISSUE-007):
 
-- a tokenizer + recursive-descent parser for the documented `.opsui` subset
+- a tokenizer + recursive-descent parser for the `.opsui` core blocks
   (app / datasource / group / operation / field / request / result)
+- the companion blocks layout / help / tour are also parsed (ISSUE-007) into the
+  app's optional companion sections
 - compiles to a normalized `AppDefinition`, injects groupId, and runs
-  `validateAppDefinition` so reference problems surface as `ProblemEntry`
+  `validateApp` (core + companion validators) so reference problems surface as
+  `ProblemEntry`
 - parse failures are reported as a single located `dsl.parse.error` problem
-
-Not parsed yet (still authored as JS objects): layout / help / tour blocks.
 
 ## 5. Tour runtime
 
@@ -153,9 +162,10 @@ Serves the showcase directory without external dependencies.
 
 ## Verified by automated tests
 
-Run on Node.js >= 18 (`npm test`, which invokes `node --test`): 43 tests across
+Run on Node.js >= 18 (`npm test`, which invokes `node --test`), across
 
-- core validation rules (`tests/validate-app.test.js`)
+- core validation rules + core/companion split (`tests/validate-app.test.js`)
+- the core boundary invariant (`tests/core-boundary.test.js`)
 - runtime stores and scheduler (`tests/runtime.test.js`)
 - typed registries (`tests/registry.test.js`)
 - request builder + HTTP executor (`tests/http-executor.test.js`)
@@ -195,10 +205,12 @@ The showcase is served with `python3 scripts/serve.py` and opened at
 
 This implementation is now enough to claim that:
 
+- the closed core is narrow and machine-enforced (boundary test); layout / help /
+  tour / geoScene are optional companion layers composed by `validateApp`
 - the runtime shape is viable and execution/selection stay explicit
 - typed registries are practical and carry a real builtin renderer set
 - maps are a first-class, data-driven surface (generic renderer, Japan dataset)
-- the `.opsui` compile path is proven for a narrow subset
+- the `.opsui` compile path is proven for core + companion blocks
 
-It is still not enough to claim that the DSL is complete (no layout/help/tour
-blocks yet) or that the renderer contracts are final.
+It is still not enough to claim that the renderer contracts are final, or that
+the DSL surface is stable.

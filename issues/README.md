@@ -13,6 +13,7 @@ commit, the source files, and the tests).
 - [x] [ISSUE-004: DSL Loader And Compile-Time Normalization](ISSUE-004-dsl-loader-and-compile-time-normalization.md)
 - [x] [ISSUE-005: Browser Test Harness And Runtime Verification](ISSUE-005-browser-test-harness-and-runtime-verification.md)
 - [x] [ISSUE-006: Builtin Renderer Set For Browser Runtime](ISSUE-006-builtin-renderer-set-for-browser-runtime.md)
+- [x] [ISSUE-010: Closed-Core Lv3 Narrowing, Field Fragments, And Result Accumulation](ISSUE-010-closed-core-lv3-narrowing-and-result-accumulation.md) — implemented locally, see its `## Status` (uncommitted)
 
 ## Open — follow-up work
 

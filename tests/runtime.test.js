@@ -82,3 +82,25 @@ test('execution store records lifecycle and history', () => {
   assert.equal(store.history().length, 1);
   assert.deepEqual(kinds, ['execution.started', 'execution.success']);
 });
+
+test('execution store accumulates runs and removes one by id', () => {
+  const clock = createManualClock({ startAt: 0 });
+  const bus = createRuntimeBus();
+  const store = createExecutionStore({ clock, bus });
+  const removed = [];
+  bus.subscribe('execution.removed', (event) => removed.push(event.id));
+
+  const ids = [];
+  for (const op of ['a', 'b', 'c']) {
+    store.begin({ operationFqid: `g.${op}`, requestPreview: { method: 'GET', url: `/${op}` } });
+    ids.push(store.succeed({ status: 200, bodyText: '{}' }).id);
+  }
+  assert.equal(store.history().length, 3); // runs accumulate for comparison
+
+  const target = ids[1];
+  assert.equal(store.remove(target), true);
+  assert.equal(store.remove(target), false); // already gone
+  assert.equal(store.history().length, 2);
+  assert.ok(!store.history().some((record) => record.id === target));
+  assert.deepEqual(removed, [target]);
+});

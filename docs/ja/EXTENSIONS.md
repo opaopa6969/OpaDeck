@@ -121,6 +121,9 @@ interface ResultRenderContext {
 }
 ```
 
+`ResultViewDefinition.renderer` は **open な registry id(ただの文字列)であり、closed enum ではない**。
+core は値を解釈せず、renderer は登録した `id`(または `canRender`)で match する。組み込みは事前登録された edge にすぎない。
+
 例:
 
 - `jsonFoldable`
@@ -128,6 +131,9 @@ interface ResultRenderContext {
 - `htmlFrame`
 - `inlineSvg`
 - `text`
+- `tableResult`
+- `geoScene` — core が一切知らない edge renderer。その `options`(`GeoSceneDefinition`)の検証は
+  geo companion `validateGeoScene` が担い、core は関与しない。
 - custom stats view
 
 ## 3. Panel renderer registry

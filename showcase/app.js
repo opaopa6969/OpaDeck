@@ -15,7 +15,7 @@ import {
   createTourRuntime,
   registerBuiltinRenderers,
   renderGeoScene,
-  validateAppDefinition,
+  validateApp,
 } from '../src/index.js';
 
 const FEATURES = [
@@ -500,7 +500,7 @@ function simulateExecution() {
 }
 
 function runValidation() {
-  const problems = validateAppDefinition(SAMPLE_APP);
+  const problems = validateApp(SAMPLE_APP);
   validationProblems.innerHTML = '';
   if (problems.length === 0) {
     validationSummary.textContent = 'Sample app is valid.';

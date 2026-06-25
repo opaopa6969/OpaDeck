@@ -1,0 +1,221 @@
+# Dogfooding port: vacant-service の table_data.js(OpaDeck の発想元)を
+# 縮約後の Lv3 core で表現できるか検証するための代表サブセット。
+# 元データ: vacant-service/.../res/table_data.js (14 group)。ここでは変種を
+# 網羅する 5 group を移植している(全 14 group の完全移植ではない)。
+
+app VacantOps v1 {
+  title "Vacant Service Operations"
+
+  # 元は label に "電力会社ID(10011北海道,10022東北,...)" と選択肢を文字列で
+  # 列挙していた自由入力。core では static option の select に「昇格」できる。
+  datasource epCompanies : options.static {
+    option "10011" label "北海道"
+    option "10022" label "東北"
+    option "10033" label "東京" description "default 候補"
+    option "10044" label "中部"
+    option "10055" label "北陸"
+    option "10066" label "関西" description "table_data.js の default"
+    option "10077" label "中国"
+    option "10088" label "四国"
+    option "10099" label "九州"
+    option "10100" label "沖縄"
+  }
+
+  # 元 table_data.js の _address_sep()(15フィールド集合)を fieldset として一度
+  # だけ定義し、必要な operation で include する。コンパイル時に展開されるので
+  # closed core は plain field の羅列しか見ない。
+  fieldset addressSep {
+    field zip : text in query { label "郵便番号" name "zip" default "1450065" }
+    field c1 : text in query { label "国域1" name "c1" default "東京都" }
+    field c2 : text in query { label "国域2" name "c2" default "大田区" }
+    field c3 : text in query { label "国域3" name "c3" }
+    field c4 : text in query { label "国域4" name "c4" default "東雪谷" }
+    field t1 : text in query { label "町域1" name "t1" default "3" }
+    field t2 : text in query { label "町域2" name "t2" default "3" }
+    field t3 : text in query { label "町域3" name "t3" default "12" }
+    field t4 : text in query { label "町域4" name "t4" }
+    field building : text in query { label "建物名" name "building" default "アーバンハイツ" }
+    field b1 : text in query { label "部屋番号" name "b1" }
+    field b2 : text in query { label "階" name "b2" default "3" }
+    field b3 : text in query { label "棟" name "b3" default "301" }
+    field dialect : text in query { label "方書" name "dialect" }
+    field dummy : text in query { label "ダミーサフィックス" name "dummy" }
+  }
+
+  # --- core group: 埋め込みクエリ URL + raw body + select query --------------
+  group core {
+    label "Core"
+
+    operation register {
+      title "登録"
+      request {
+        method POST
+        # 元: action に clientId/requestId/format を直書き。url は literal なので
+        # そのまま表現できる(動的化したいパラメータだけ field:query に出せる)。
+        url "./api/address?clientId=123&requestId=456&format=tsv"
+        contentType "text/plain"
+        body raw field formbody
+      }
+      field epCompanyId : select in query {
+        label "電力会社ID"
+        name "epCompanyId"
+        source epCompanies
+        default "10066"
+      }
+      field formbody : textarea in body {
+        label "住所行(複数行 TSV)"
+        required true
+      }
+      result { renderer text }
+    }
+
+    operation check {
+      title "検索"
+      request {
+        method GET
+        url "./api/check?clientId=123&requestId=456"
+      }
+      field address : text in query {
+        label "住所"
+        name "addresses"
+        default "大阪府大阪市北区梅田1-2-3-208"
+      }
+      result { renderer jsonFoldable }
+    }
+
+    operation multipleCheck {
+      title "複数検索"
+      request {
+        method POST
+        url "./api/multipleCheck?clientId=123&requestId=456"
+        contentType "text/plain"
+        timeoutMs 60000
+        body raw field formbody
+      }
+      field formbody : textarea in body {
+        label "住所行(複数行)"
+        required true
+      }
+      result { renderer jsonLines }
+    }
+  }
+
+  # --- index group: pure REST path -----------------------------------------
+  group index {
+    label "Index"
+
+    operation listIndex {
+      title "Index一覧を取得"
+      request {
+        method GET
+        url "./api/index/listIndex"
+      }
+      result { renderer tableResult }
+    }
+
+    operation createIndexQueue {
+      title "IndexQueue作成"
+      request {
+        method POST
+        url "./api/index/queue"
+        contentType "text/plain"
+        body raw field formbody
+      }
+      field formbody : textarea in body {
+        label "Queue payload (JSON)"
+        required true
+      }
+      result { renderer auto }
+    }
+  }
+
+  # --- building group: 同一 URL を method で多重定義(GET/POST/DELETE) -------
+  # 元 table_data.js では同じ ./api/building が3つの動作を兼ねていた。core では
+  # 「3つの operation」として素直に分離できる(method 違いで衝突しない)。
+  group building {
+    label "Building"
+
+    operation buildingUpsert {
+      title "建物名教師DBレコードの追加、更新"
+      request {
+        method POST
+        url "./api/building?requestId=123&clientId=456"
+        body form
+      }
+      field name : text in body {
+        label "建物名"
+        name "name"
+        required true
+      }
+      field value : text in body {
+        label "値"
+        name "value"
+      }
+      result { renderer auto }
+    }
+
+    operation buildingSearch {
+      title "建物名教師DBレコードの検索"
+      request {
+        method GET
+        url "./api/building?requestId=123&clientId=456"
+      }
+      field q : text in query {
+        label "建物名"
+        name "name"
+      }
+      result { renderer tableResult }
+    }
+
+    operation buildingDelete {
+      title "建物名教師DBレコードの削除"
+      request {
+        method DELETE
+        url "./api/building?requestId=123&clientId=456"
+      }
+      field name : text in query {
+        label "建物名"
+        name "name"
+        required true
+      }
+      result { renderer auto }
+    }
+  }
+
+  # --- hierarchy group: _address_sep() を fieldset の include で再利用 --------
+  # 元は JS の .concat(this._address_sep()) で 15 フィールド集合を共有していた。
+  # fieldset + include(compile-time マクロ)で同じ DRY を core 無変更で実現。
+  group hierarchy {
+    label "Hierarchy"
+
+    operation hierarchySearch {
+      title "階層教師DBレコードの検索"
+      request {
+        method GET
+        url "./api/hierarchy?requestId=123&clientId=456"
+      }
+      include addressSep
+      result { renderer jsonFoldable }
+    }
+  }
+
+  # --- microProfile group: download 属性は表現しない(presentation 領域) -----
+  group microProfile {
+    label "MicroProfile"
+
+    operation health {
+      title "health"
+      request { method GET url "./q/health" }
+      result { renderer jsonFoldable }
+    }
+
+    operation openapi {
+      title "openapi"
+      # 元は download:'openapi.yaml'(保存ファイル名)を持っていた。これは結果の
+      # 提示方法=presentation 領域なので core では持たない(必要なら result の
+      # renderer options へ)。
+      request { method GET url "./q/openapi" }
+      result { renderer text }
+    }
+  }
+}

@@ -157,6 +157,32 @@ test('resultStack renders an execution record through a result renderer', () => 
   assert.ok(el.querySelector('.opa-json'));
 });
 
+test('resultStack stacks runs, honors limit, and dismisses by id', () => {
+  const document = createFakeDocument();
+  const records = [
+    { id: 'exec_3', status: 'success', operationFqid: 'g.op', response: { status: 200, bodyText: '{}' } },
+    { id: 'exec_2', status: 'error', operationFqid: 'g.op', response: { status: 500, bodyText: '{}' } },
+    { id: 'exec_1', status: 'success', operationFqid: 'g.op', response: { status: 200, bodyText: '{}' } },
+  ];
+  const dismissed = [];
+
+  const stacked = panelRenderer('resultStack').render({ document, records });
+  assert.equal(stacked.querySelectorAll('.opa-result').length, 3); // all runs kept
+
+  const limited = panelRenderer('resultStack').render({ document, records, limit: 1 });
+  assert.equal(limited.querySelectorAll('.opa-result').length, 1); // latest only
+
+  const withDismiss = panelRenderer('resultStack').render({
+    document,
+    records,
+    onDismiss: (id) => dismissed.push(id),
+  });
+  const buttons = withDismiss.querySelectorAll('.opa-result-dismiss');
+  assert.equal(buttons.length, 3);
+  buttons[0].click();
+  assert.deepEqual(dismissed, ['exec_3']);
+});
+
 test('registerBuiltinRenderers populates every registry', () => {
   const fieldRenderers = createFieldRendererRegistry();
   const resultRenderers = createResultRendererRegistry();

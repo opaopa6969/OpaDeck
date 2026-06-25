@@ -1,12 +1,12 @@
 import { normalizeAppDefinition } from '../core/normalize-app.js';
-import { validateAppDefinition } from '../core/validate-app.js';
+import { validateApp } from '../validate.js';
 import { createProblem } from '../core/problem.js';
 
-// A deliberately narrow loader for the `.opsui` DSL. It supports the subset
-// proven by docs/en/DSL.md: app / datasource / group / operation / field /
-// request / result. Layout, help, and tour blocks are intentionally not parsed
-// yet; the runtime still accepts those via JS objects. The goal here is to
-// prove the compile path, not to ship a full language.
+// A loader for the `.opsui` DSL. It parses the core blocks (app / datasource /
+// fieldset / group / operation / field / request / result) and the optional
+// companion blocks (layout / help / tour). `fieldset` + `include` are pure
+// compile-time sugar: an include splices copies of the fragment's fields into
+// the operation, so the compiled model only ever contains plain fields.
 //
 // compileOpsui returns { app, problems }:
 //   - parse errors are reported as a single located `dsl.parse.error` problem
@@ -38,7 +38,7 @@ export function compileOpsui(source, options = {}) {
   if (options.validate === false) {
     return { app: normalized, problems };
   }
-  problems.push(...validateAppDefinition(normalized));
+  problems.push(...validateApp(normalized));
   return { app: normalized, problems };
 }
 
@@ -125,6 +125,11 @@ class Parser {
   constructor(tokens) {
     this.tokens = tokens;
     this.pos = 0;
+    // Compile-time field fragments. `fieldset` blocks are pure DSL sugar: an
+    // `include` splices copies of the fragment's fields into an operation, so
+    // the compiled model only ever sees plain fields. The core never learns
+    // that a fieldset existed.
+    this.fieldSets = new Map();
   }
 
   peek() {
@@ -173,7 +178,7 @@ class Parser {
     const help = { entries: [], tours: [] };
     this.expect('lbrace', "'{'");
     while (this.peek().type !== 'rbrace') {
-      const keyword = this.expectAtTopLevel(['title', 'defaultLayout', 'datasource', 'group', 'layout', 'help', 'tour']);
+      const keyword = this.expectAtTopLevel(['title', 'defaultLayout', 'datasource', 'fieldset', 'group', 'layout', 'help', 'tour']);
       switch (keyword.value) {
         case 'title':
           app.title = this.expect('string', 'a title string').value;
@@ -183,6 +188,9 @@ class Parser {
           break;
         case 'datasource':
           app.dataSources.push(this.parseDatasource());
+          break;
+        case 'fieldset':
+          this.parseFieldSet();
           break;
         case 'group':
           app.groups.push(this.parseGroup());
@@ -214,6 +222,18 @@ class Parser {
       throw parseError(`Unexpected keyword '${token.value}'. Expected one of: ${allowed.join(', ')}.`, token.line, token.column);
     }
     return token;
+  }
+
+  parseFieldSet() {
+    const id = this.expectWord().value;
+    const fields = [];
+    this.expect('lbrace', "'{'");
+    while (this.peek().type !== 'rbrace') {
+      this.expectAtTopLevel(['field']);
+      fields.push(this.parseField());
+    }
+    this.expect('rbrace', "'}'");
+    this.fieldSets.set(id, fields);
   }
 
   parseDatasource() {
@@ -274,7 +294,7 @@ class Parser {
     const operation = { id, title: id, request: { method: 'GET', url: '' }, fields: [] };
     this.expect('lbrace', "'{'");
     while (this.peek().type !== 'rbrace') {
-      const keyword = this.expectAtTopLevel(['title', 'summary', 'request', 'field', 'result']);
+      const keyword = this.expectAtTopLevel(['title', 'summary', 'request', 'field', 'include', 'result']);
       switch (keyword.value) {
         case 'title':
           operation.title = this.expect('string', 'a title string').value;
@@ -288,6 +308,21 @@ class Parser {
         case 'field':
           operation.fields.push(this.parseField());
           break;
+        case 'include': {
+          const ref = this.expectWord();
+          const fields = this.fieldSets.get(ref.value);
+          if (!fields) {
+            throw parseError(
+              `Unknown fieldset '${ref.value}'. Declare it before the operation that includes it.`,
+              ref.line,
+              ref.column
+            );
+          }
+          for (const field of fields) {
+            operation.fields.push(cloneField(field));
+          }
+          break;
+        }
         case 'result':
           operation.result = this.parseResult();
           break;
@@ -727,6 +762,12 @@ class Parser {
     if (/^-?\d+(\.\d+)?$/.test(word)) return Number(word);
     return word;
   }
+}
+
+function cloneField(field) {
+  // Fields are plain data (primitives, small arrays/objects), so a structural
+  // round-trip is enough and keeps each operation's copy independent.
+  return JSON.parse(JSON.stringify(field));
 }
 
 function describe(token) {

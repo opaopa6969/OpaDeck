@@ -121,6 +121,10 @@ interface ResultRenderContext {
 }
 ```
 
+`ResultViewDefinition.renderer` is an **open registry id (a plain string), not a
+closed enum**. The core does not interpret it; a renderer matches by its
+registered `id` (or by `canRender`). Built-ins are just pre-registered edges.
+
 Examples:
 
 - `jsonFoldable`
@@ -128,6 +132,10 @@ Examples:
 - `htmlFrame`
 - `inlineSvg`
 - `text`
+- `tableResult`
+- `geoScene` — an edge renderer the core knows nothing about. Its `options`
+  (`GeoSceneDefinition`) are validated by the geo companion `validateGeoScene`,
+  not by the core.
 - custom stats views
 
 ## 3. Panel renderer registry

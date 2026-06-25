@@ -84,11 +84,15 @@ export function createBuiltinPanelRenderers() {
       },
     },
     {
-      // ctx: { document, panel?, records, resultRenderers? }
+      // ctx: { document, panel?, records, resultRenderers?, limit?, onDismiss? }
+      // Records accumulate newest-first so repeated runs stay on screen for
+      // comparison. `limit` caps how many are shown (e.g. 1 for latest-only);
+      // `onDismiss(id)` adds a per-result dismiss control.
       id: 'resultStack',
       render: (ctx) => {
         const doc = ctx.document;
-        const records = ctx.records || [];
+        const all = ctx.records || [];
+        const records = typeof ctx.limit === 'number' ? all.slice(0, Math.max(0, ctx.limit)) : all;
         if (records.length === 0) {
           return panelShell(ctx, 'opa-result-stack', [h(doc, 'p', { class: 'opa-empty', text: 'No results yet.' })]);
         }
@@ -97,6 +101,15 @@ export function createBuiltinPanelRenderers() {
             h(doc, 'span', { class: `opa-badge opa-badge-${record.status}`, text: record.status }),
             h(doc, 'span', { class: 'opa-result-op', text: record.operationFqid || '' }),
             record.response ? h(doc, 'span', { class: 'opa-result-status', text: String(record.response.status) }) : null,
+            typeof ctx.onDismiss === 'function'
+              ? h(doc, 'button', {
+                type: 'button',
+                class: 'opa-result-dismiss',
+                title: 'Dismiss',
+                text: '×',
+                on: { click: () => ctx.onDismiss(record.id) },
+              })
+              : null,
           ]),
           renderResultBody(ctx, record),
         ]));

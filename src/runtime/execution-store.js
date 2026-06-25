@@ -82,6 +82,16 @@ export function createExecutionStore(options = {}) {
       return finalize('timeout', null, problems);
     },
 
+    remove(id) {
+      const next = history.filter((record) => record.id !== id);
+      if (next.length === history.length) {
+        return false;
+      }
+      history = next;
+      emit('execution.removed', { id });
+      return true;
+    },
+
     clearHistory() {
       history = [];
       emit('execution.historyCleared', { history: [] });

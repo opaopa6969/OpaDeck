@@ -9,7 +9,24 @@ The rule is simple:
 - the core defines meaning
 - registries define rendering and integration at the edges
 
-If a type is part of the semantic truth of an application, it belongs here.
+Only types that are part of the semantic truth of an application belong here.
+**The core stays focused on the meaning needed to run an operation.**
+
+## Companion layers (optional / non-core)
+
+The following are **not** part of the closed core. They are optional companion
+layers that sit on top of the operation core. Their type details live in
+`EXTENSIONS.md` and in each companion module; the core does not know about them.
+
+- **layout** (presentation tree: `RenderNode` / `PanelBinding` / `PanelChrome`) — `src/layout/`
+- **help / tour** (`HelpModel` / `HelpEntry` / `HelpTarget` / `HelpWhen` / `OperationHelpBlock` / `TourSpec` / `TourStep` / `TourCommand`) — `src/help/`
+- **geoScene** (the `GeoSceneDefinition` family) — one result-renderer implementation, `src/geo/`
+- **card** (`CardSpec`) and the `icon` / `tone` / `featured` / `tags` hints on operations/groups — launcher/discovery display metadata
+- **UI selection** (`UiSelection`) — shared runtime/UI state
+
+An app object may carry these optionally, but they are validated by companion
+validators (`validateLayouts` / `validateHelp` / `validateGeoScene`), composed by
+`validateApp` — not by the core. See "Boundary of the core" below.
 
 ## Top-level model
 
@@ -20,9 +37,6 @@ interface AppDefinition {
   title: string;
   groups: GroupDefinition[];
   dataSources: DataSourceDefinition[];
-  layouts: LayoutDefinition[];
-  defaultLayoutId: string;
-  help?: HelpModel;
 }
 ```
 
@@ -35,8 +49,6 @@ interface GroupDefinition {
   id: string;
   label: string;
   summary?: string;
-  icon?: string;
-  card?: CardSpec;
   operations: OperationDefinition[];
 }
 ```
@@ -51,15 +63,9 @@ interface OperationDefinition {
   groupId: string;          // injected/normalized at compile time
   title: string;
   summary?: string;
-  icon?: string;
-  tone?: 'default' | 'info' | 'success' | 'warning' | 'danger';
-  featured?: boolean;
-  tags?: string[];
   request: RequestDefinition;
   fields: FieldDefinition[];
   result?: ResultViewDefinition;
-  help?: OperationHelpBlock;
-  card?: CardSpec;
 }
 ```
 
@@ -211,232 +217,19 @@ interface OptionItem {
 
 ```ts
 interface ResultViewDefinition {
-  renderer: ResultRendererId;
-  options?: Record<string, unknown>;
-}
-
-type ResultRendererId =
-  | 'auto'
-  | 'jsonFoldable'
-  | 'jsonLines'
-  | 'htmlFrame'
-  | 'inlineSvg'
-  | 'tableResult'
-  | 'geoScene'
-  | 'text'
-  | 'custom';
-```
-
-If `renderer === 'geoScene'`, `options` should conform to `GeoSceneDefinition`.
-
-```ts
-interface GeoSceneDefinition {
-  baseMap: string; // e.g. "japan"
-  layers: GeoLayerDefinition[];
-  initialView?: GeoViewState;
-  selectionMode?: 'none' | 'single' | 'multiple';
-}
-
-type GeoLayerDefinition =
-  | GeoChoroplethLayer
-  | GeoPointsLayer
-  | GeoLinesLayer;
-
-interface GeoChoroplethLayer {
-  kind: 'choropleth';
-  source: string;
-  keyField: string;
-  valueField: string;
-  palette?: string;
-}
-
-interface GeoPointsLayer {
-  kind: 'points';
-  source: string;
-  xField?: string;
-  yField?: string;
-  latField?: string;
-  lngField?: string;
-  labelField?: string;
-}
-
-interface GeoLinesLayer {
-  kind: 'lines';
-  source: string;
-  fromField: string;
-  toField: string;
-}
-
-interface GeoViewState {
-  x?: number;
-  y?: number;
-  zoom?: number;
+  renderer: string;            // an open registry id (registered per EXTENSIONS)
+  options?: unknown;           // interpreted/validated by the renderer; opaque to the core
 }
 ```
 
-## Help model
+`renderer` is **not** a closed enum — it is an **open string id**. The core does
+not interpret its value. Built-in renderers (`tableResult`, `jsonFoldable`,
+`geoScene`, …) are registered through the same edge mechanism and are not part of
+the core (see `EXTENSIONS.md`).
 
-```ts
-interface HelpModel {
-  entries: HelpEntry[];
-  tours: TourSpec[];
-}
-
-interface OperationHelpBlock {
-  title?: string;
-  body?: string;
-  danger?: string;
-}
-```
-
-### Help entries
-
-```ts
-interface HelpEntry {
-  id: string;
-  target: HelpTarget;
-  kind: 'inline' | 'tooltip' | 'panel' | 'empty-state' | 'danger' | 'troubleshooting';
-  title?: string;
-  body: string;
-  when?: HelpWhen;
-}
-
-type HelpTarget =
-  | { kind: 'app'; appId: string }
-  | { kind: 'group'; groupId: string }
-  | { kind: 'operation'; operationId: string }
-  | { kind: 'field'; operationId: string; fieldId: string }
-  | { kind: 'panel'; panelId: string }
-  | { kind: 'result'; operationId?: string };
-
-interface HelpWhen {
-  mode?: 'always' | 'idle' | 'error' | 'success' | 'empty';
-  validationCodes?: string[];
-  resultStatuses?: number[];
-}
-```
-
-## Tour model
-
-```ts
-interface TourSpec {
-  id: string;
-  title: string;
-  description?: string;
-  startFrom?: 'current-state' | 'known-state';
-  steps: TourStep[];
-}
-
-interface TourStep {
-  id: string;
-  title: string;
-  narration?: string;
-  commands: TourCommand[];
-}
-```
-
-Tour commands are part of the semantic/help model, but their execution is handled by an extension registry.
-
-## Layout model
-
-Layout is not semantic truth. It is a presentation tree.
-
-```ts
-interface LayoutDefinition {
-  id: string;
-  title?: string;
-  root: RenderNode;
-}
-
-type RenderNode =
-  | SplitNode
-  | StackNode
-  | TabsNode
-  | PanelNode;
-
-interface SplitNode {
-  kind: 'split';
-  id: string;
-  direction: 'row' | 'column';
-  sizes?: [number, number];
-  children: [RenderNode, RenderNode];
-}
-
-interface StackNode {
-  kind: 'stack';
-  id: string;
-  gap?: 'none' | 'sm' | 'md' | 'lg';
-  children: RenderNode[];
-}
-
-interface TabsNode {
-  kind: 'tabs';
-  id: string;
-  defaultTabId?: string;
-  tabs: PanelNode[];
-}
-
-interface PanelNode {
-  kind: 'panel';
-  id: string;
-  renderer: PanelRendererId;
-  binding: PanelBinding;
-  props?: Record<string, unknown>;
-  chrome?: PanelChrome;
-}
-```
-
-### Panel binding
-
-```ts
-type PanelBinding =
-  | { kind: 'allGroups' }
-  | { kind: 'group'; groupId: string }
-  | { kind: 'selection' }
-  | { kind: 'results'; scope: 'global' | 'selection' | 'operation'; operationId?: string }
-  | { kind: 'help'; scope: 'app' | 'selection' | 'operation'; operationId?: string }
-  | { kind: 'markdown'; content: string };
-
-interface PanelChrome {
-  title?: string;
-  icon?: string;
-  collapsible?: boolean;
-  defaultCollapsed?: boolean;
-  closable?: boolean;
-  resizable?: boolean;
-  minSize?: number;
-}
-```
-
-## Card metadata
-
-Cards are launcher/discovery metadata, not the primary interaction model.
-
-```ts
-interface CardSpec {
-  title: string;
-  summary?: string;
-  tone?: 'default' | 'info' | 'success' | 'warning' | 'danger';
-  icon?: string;
-  badge?: string;
-  featured?: boolean;
-  tags?: string[];
-}
-```
-
-## UI selection model
-
-Selection is shared app state, not panel-local state.
-
-```ts
-interface UiSelection {
-  groupId: string | null;
-  operationId: string | null;
-  fieldId: string | null;
-  resultId: string | null;
-  panelId: string | null;
-}
-```
+The meaning of `options` is defined by each renderer. For example, the geoScene
+renderer expects a `GeoSceneDefinition` (baseMap / layers / …), and that shape is
+validated by the geo companion (`validateGeoScene`), not by the core.
 
 ## Problem contract
 
@@ -462,15 +255,22 @@ type ProblemTarget =
 
 ## Core validation targets
 
-The core model must be validated for at least:
+**The core (`validateAppDefinition`) validates only:**
 
-- duplicate ids
-- missing references
-- invalid body field references
-- invalid panel bindings
-- data-source dependency cycles
-- invalid help targets
-- invalid tour targets
+- duplicate ids (group / operation / field / data-source)
+- groupId mismatch
+- missing `rawField` body references
+- missing field data-source references
+
+Companion-layer checks live outside the core. `validateApp` (`src/validate.js`)
+composes them based on what the app actually carries:
+
+- **invalid panel bindings** → `validateLayouts` (`src/layout/validate-layout.js`)
+- **invalid help / tour targets** → `validateHelp` (`src/help/validate-help.js`)
+- **invalid geoScene options** → `validateGeoScene` (`src/geo/validate-geo.js`)
+
+The DSL compiler (`compileOpsui`) and the showcase call `validateApp` for the
+full diagnostic surface.
 
 ## Boundary of the core
 
@@ -478,11 +278,11 @@ The core model must be validated for at least:
 
 - app/group/operation/field/data-source model
 - request contract
-- result-view contract
-- help/tour model
-- layout AST
-- selection model
-- validation rules
+- result-view contract (renderer is an open id)
+- validation rules (core checks only, as above)
+
+layout / help / tour / geoScene / card / selection are companion layers, not the
+core (see "Companion layers" at the top).
 
 ### Runtime-side companion models
 

@@ -1,6 +1,11 @@
 export * from './core/problem.js';
+export * from './core/ids.js';
 export * from './core/normalize-app.js';
 export * from './core/validate-app.js';
+
+export * from './validate.js';
+export * from './layout/validate-layout.js';
+export * from './help/validate-help.js';
 
 export * from './runtime/bus.js';
 export * from './runtime/clock.js';
@@ -34,3 +39,4 @@ export * from './renderers/builtins.js';
 export * from './geo/japan-preset.js';
 export * from './geo/geo-scene-renderer.js';
 export * from './geo/geo-scene-registry.js';
+export * from './geo/validate-geo.js';

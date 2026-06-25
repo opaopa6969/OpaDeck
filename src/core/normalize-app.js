@@ -7,11 +7,12 @@ export function normalizeAppDefinition(app) {
     throw new TypeError('App definition must be an object.');
   }
   const groups = shallowCloneArray(app.groups).map((group) => normalizeGroup(group));
+  // Core normalizes only the semantic spine (groups + dataSources). Optional
+  // companion sections ride through untouched via the spread.
   const normalized = {
     ...app,
     groups,
     dataSources: shallowCloneArray(app.dataSources),
-    layouts: shallowCloneArray(app.layouts),
   };
   for (const group of normalized.groups) {
     for (const operation of group.operations) {

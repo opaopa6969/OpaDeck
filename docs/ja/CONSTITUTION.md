@@ -9,13 +9,14 @@
 
 ### 1. Operation first
 
-第一単位は `Operation`。
+第一単位は `Operation`。closed core はこの operation を実行する意味だけを持つ。
 
 - field は入力を提供する
 - datasource は候補値や default/help データを提供する
-- result view は結果を見せる
-- help/tour は operation を理解させる
-- layout は operation の見せ方を決める
+- result view は結果を見せる(renderer は open な registry id)
+
+help / tour / layout / card は operation core の**上に載る optional な companion 層**であり、
+closed core には含めない(原則5・6、`CORE_MODEL.md` の Companion layers 参照)。
 
 ### 2. 意味層を先に置く
 
@@ -42,26 +43,32 @@ stable id を持つ対象:
 
 ### 4. convention より validation
 
-framework は少なくとも次を検証する。
+**core** は少なくとも次を検証する。
 
 - id 重複
-- 参照切れ
-- dependency cycle
-- layout binding の不整合
-- help/tour target の不整合
+- 参照切れ(body field / datasource)
+- groupId mismatch
 
-### 5. help は後付けではない
+companion 層の検証は core の外に分離する(`validateApp` が合成)。
 
-すべての OpaDeck アプリは次を持てるべき。
+- layout binding の不整合 → layout companion
+- help/tour target の不整合 → help companion
+- geoScene options の不整合 → geo companion
+
+### 5. help は companion 層(後付けではない)
+
+OpaDeck は次を**持てる**。ただしこれらは closed core ではなく、operation core の上に載る optional な companion 層。
 
 - inline help
 - contextual help
 - troubleshooting help
 - interactive tour
 
-### 6. layout は柔軟だが浅く始める
+「持てる」ことは OpaDeck の価値だが、core はこれらを知らない。help/tour の型と検証は companion 側にある。
 
-最初の primitive はこれだけ。
+### 6. layout も companion 層(柔軟だが浅く始める)
+
+layout も core ではなく companion 層。primitive はこれだけに留める。
 
 - split
 - stack

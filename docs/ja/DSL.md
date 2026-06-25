@@ -14,7 +14,9 @@
 これは generic form DSL ではない。  
 operation-centric な internal ops UI DSL である。
 
-## 中核ブロック
+## ブロック
+
+core ブロック(closed semantic core):
 
 - `app`
 - `datasource`
@@ -23,6 +25,10 @@ operation-centric な internal ops UI DSL である。
 - `field`
 - `request`
 - `result`
+
+companion ブロック(optional・core ではない。`CORE_MODEL.md` 参照)。parser は解釈するが、
+core の意味ではなく companion 層を記述する:
+
 - `help`
 - `tour`
 - `layout`

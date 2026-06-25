@@ -9,13 +9,16 @@
 
 ### 1. Operation first
 
-The primary unit is the `Operation`.
+The primary unit is the `Operation`. The closed core holds only the meaning
+needed to run that operation.
 
 - fields provide input
 - data sources provide options/defaults/help data
-- result views present outcomes
-- help and tours explain operations
-- layout arranges how operations are shown
+- result views present outcomes (renderer is an open registry id)
+
+help / tour / layout / card are **optional companion layers that sit on top of**
+the operation core; they are not part of the closed core (see principles 5 & 6,
+and "Companion layers" in `CORE_MODEL.md`).
 
 ### 2. Meaning before rendering
 
@@ -42,26 +45,34 @@ Use stable ids for:
 
 ### 4. Validation over convention
 
-The framework must validate:
+The **core** must validate at least:
 
 - duplicate ids
-- broken references
-- dependency cycles
-- invalid layout bindings
-- invalid help/tour targets
+- broken references (body field / data source)
+- groupId mismatch
 
-### 5. Help is a feature
+Companion-layer checks live outside the core (composed by `validateApp`):
 
-Every OpaDeck application should be able to provide:
+- invalid layout bindings → layout companion
+- invalid help/tour targets → help companion
+- invalid geoScene options → geo companion
+
+### 5. Help is a companion layer (not an afterthought)
+
+OpaDeck **can** provide the following — but these are optional companion layers on
+top of the operation core, not part of the closed core:
 
 - inline help
 - contextual help
 - troubleshooting help
 - interactive tours
 
-### 6. Layout is flexible but shallow
+Being able to offer them is part of OpaDeck's value, yet the core does not know
+about them. Help/tour types and their validation live in the companion layer.
 
-Start with a small set of layout primitives:
+### 6. Layout is a companion layer too (flexible but shallow)
+
+Layout is also a companion layer, not core. Keep the primitives to just:
 
 - split
 - stack

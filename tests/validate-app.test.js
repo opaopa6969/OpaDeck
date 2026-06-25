@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { validateAppDefinition } from '../src/index.js';
+import { validateApp, validateAppDefinition } from '../src/index.js';
 
 test('validator catches duplicate ids and missing references', () => {
-  const problems = validateAppDefinition({
+  const problems = validateApp({
     id: 'demo',
     version: 1,
     title: 'Demo',
@@ -101,4 +101,38 @@ test('validator catches duplicate ids and missing references', () => {
   assert.ok(codes.includes('help.target.invalid'));
   assert.ok(codes.includes('tour.command.operation.missing'));
   assert.ok(codes.includes('tour.command.panel.missing'));
+});
+
+test('bare core validator only reports core problems, not companion ones', () => {
+  const codes = validateAppDefinition({
+    id: 'demo',
+    version: 1,
+    title: 'Demo',
+    groups: [
+      {
+        id: 'g',
+        label: 'G',
+        operations: [
+          {
+            id: 'op',
+            groupId: 'g',
+            title: 'Op',
+            request: { method: 'GET', url: '/x' },
+            fields: [],
+            result: { renderer: 'geoScene', options: {} },
+          },
+        ],
+      },
+    ],
+    dataSources: [],
+    layouts: [
+      { id: 'l', root: { kind: 'panel', id: 'p', renderer: 'groupNav', binding: { kind: 'group', groupId: 'missing' } } },
+    ],
+    help: { entries: [{ id: 'h', target: { kind: 'group', groupId: 'missing' }, body: 'x' }], tours: [] },
+  }).map((problem) => problem.code);
+
+  // Core stays silent about layout/help/geo: those are companion concerns.
+  assert.ok(!codes.some((code) => code.startsWith('panel.binding')));
+  assert.ok(!codes.some((code) => code.startsWith('help.')));
+  assert.ok(!codes.some((code) => code.startsWith('result.geoScene')));
 });
