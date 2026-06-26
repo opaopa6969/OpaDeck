@@ -124,6 +124,9 @@ function buildBody(request, fields, fieldState) {
     }
     return form.toString();
   }
+  if (body.kind === 'multipart') {
+    return buildMultipart(fields, fieldState);
+  }
   return undefined;
 }
 
@@ -132,7 +135,40 @@ function inferContentType(request) {
   if (body && body.kind === 'form') {
     return 'application/x-www-form-urlencoded';
   }
+  if (body && body.kind === 'multipart') {
+    return `multipart/form-data; boundary=${MULTIPART_BOUNDARY}`;
+  }
   return undefined;
+}
+
+// A fixed boundary keeps buildRequestPreview pure (no Date/Math.random) and lets
+// the preview, curl, and the executed request stay byte-for-byte identical.
+export const MULTIPART_BOUNDARY = '----OpaDeckFormBoundary7MA4YWxkTrZu0gW';
+
+function buildMultipart(fields, fieldState) {
+  const parts = [];
+  for (const field of fields) {
+    if (field.placement !== 'body') {
+      continue;
+    }
+    const value = readValue(fieldState, field);
+    if (value == null) {
+      continue;
+    }
+    const values = Array.isArray(value) ? value : [value];
+    for (const item of values) {
+      if (item == null) {
+        continue;
+      }
+      parts.push(
+        `--${MULTIPART_BOUNDARY}\r\n`
+        + `Content-Disposition: form-data; name="${serializedKey(field)}"\r\n\r\n`
+        + `${String(item)}\r\n`,
+      );
+    }
+  }
+  parts.push(`--${MULTIPART_BOUNDARY}--\r\n`);
+  return parts.join('');
 }
 
 export function buildCurl(preview) {
@@ -153,14 +189,33 @@ export function buildCurl(preview) {
 // --- helpers ---------------------------------------------------------------
 
 function readValue(fieldState, field) {
+  let value;
   const direct = fieldState[field.id];
   if (direct !== undefined) {
-    return direct;
+    value = direct;
+  } else if (field.defaultValue !== undefined) {
+    value = field.defaultValue;
+  } else {
+    value = undefined;
   }
-  if (field.defaultValue !== undefined) {
-    return field.defaultValue;
+  return resolveCheckbox(field, value);
+}
+
+// Checkbox fields carry a boolean state, but HTML checkbox semantics are
+// "submit a specific value only when checked". A checked box serializes to
+// `field.checkedValue` (default 'on'); an unchecked box serializes to
+// `field.uncheckedValue` (default undefined => the parameter is omitted), so
+// the boolean never leaks out as the literal string "true"/"false".
+function resolveCheckbox(field, value) {
+  if (!field || field.type !== 'checkbox') {
+    return value;
   }
-  return undefined;
+  const checked = value === true
+    || (typeof value === 'string' && value !== '' && value !== 'false' && value !== '0');
+  if (checked) {
+    return field.checkedValue !== undefined ? field.checkedValue : 'on';
+  }
+  return field.uncheckedValue;
 }
 
 function appendValue(params, key, value) {

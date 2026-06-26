@@ -13,6 +13,8 @@ export * from './runtime/services.js';
 
 export * from './dsl/opsui.js';
 
+export * from './app/workbench.js';
+
 export * from './tour/command-handler-registry.js';
 export * from './tour/handlers.js';
 export * from './tour/runtime.js';
