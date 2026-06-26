@@ -21,6 +21,10 @@ export function tourTargetSelector(target) {
       return `[data-field-id="${cssAttrEscape(`${target.operationId}::${target.fieldId}`)}"]`;
     case 'panel':
       return `[data-panel-id="${cssAttrEscape(target.panelId)}"]`;
+    case 'selector':
+      // 任意の CSS セレクタを直接スポットライト対象にする(operation/field/panel に
+      // 紐づかない要素 — 結果カードの view チップ, 地図のレイヤUI 等 — の説明用)。
+      return target.selector || null;
     default:
       return null;
   }
@@ -47,6 +51,14 @@ export function createDefaultTourCommandHandlers() {
       run(command, context) {
         select(context, { panelId: command.panelId });
         return spotlight('panel', { kind: 'panel', panelId: command.panelId });
+      },
+    },
+    {
+      id: 'focusSelector',
+      run(command, context) {
+        // 任意 DOM 要素を CSS セレクタでスポットライト。selection は変えない。
+        if (command.panelId) select(context, { panelId: command.panelId });
+        return spotlight('selector', { kind: 'selector', selector: command.selector });
       },
     },
     {
