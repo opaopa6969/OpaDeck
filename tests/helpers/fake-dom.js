@@ -37,6 +37,23 @@ class FakeText extends FakeNode {
   }
 }
 
+function makeClassList(el) {
+  const tokens = () => new Set(String(el.className || '').split(/\s+/).filter(Boolean));
+  const write = (set) => { el.className = [...set].join(' '); };
+  return {
+    add(c) { const s = tokens(); s.add(c); write(s); },
+    remove(c) { const s = tokens(); s.delete(c); write(s); },
+    contains(c) { return tokens().has(c); },
+    toggle(c, force) {
+      const s = tokens();
+      const want = force === undefined ? !s.has(c) : force;
+      if (want) s.add(c); else s.delete(c);
+      write(s);
+      return want;
+    },
+  };
+}
+
 class FakeElement extends FakeNode {
   constructor(tag) {
     super();
@@ -57,6 +74,17 @@ class FakeElement extends FakeNode {
     this.selected = false;
     this.placeholder = '';
     this.id = '';
+    this.style = {};
+    this.ownerDocument = null;
+    this.classList = makeClassList(this);
+  }
+
+  removeEventListener(event, handler) {
+    const arr = this.listeners.get(event);
+    if (arr) {
+      const i = arr.indexOf(handler);
+      if (i >= 0) arr.splice(i, 1);
+    }
   }
 
   get textContent() {
@@ -237,18 +265,40 @@ function attrValue(el, name) {
 
 export function createFakeDocument() {
   const byId = new Map();
-  return {
+  const docListeners = new Map();
+  const doc = {
+    fullscreenElement: null,
+    fullscreenEnabled: false, // 既定で未対応 → fullscreen ユーティリティはオーバーレイへ
     createElement(tag) {
-      return new FakeElement(tag);
+      const el = new FakeElement(tag);
+      el.ownerDocument = doc;
+      return el;
     },
     createElementNS(_ns, tag) {
-      return new FakeElement(tag);
+      const el = new FakeElement(tag);
+      el.ownerDocument = doc;
+      return el;
     },
     createTextNode(text) {
       return new FakeText(text);
     },
     getElementById(id) {
       return byId.get(id) || null;
+    },
+    addEventListener(event, handler) {
+      const arr = docListeners.get(event) || [];
+      arr.push(handler);
+      docListeners.set(event, arr);
+    },
+    removeEventListener(event, handler) {
+      const arr = docListeners.get(event);
+      if (arr) {
+        const i = arr.indexOf(handler);
+        if (i >= 0) arr.splice(i, 1);
+      }
+    },
+    dispatch(event, payload) {
+      for (const handler of (docListeners.get(event) || []).slice()) handler(payload || { type: event });
     },
     register(element) {
       if (element && element.id) {
@@ -257,6 +307,7 @@ export function createFakeDocument() {
       return element;
     },
   };
+  return doc;
 }
 
 export { FakeElement, FakeText };
