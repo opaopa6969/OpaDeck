@@ -19,3 +19,4 @@ commit, the source files, and the tests).
 - [ ] [ISSUE-007: DSL Layout, Help, And Tour Blocks](ISSUE-007-dsl-layout-help-tour-blocks.md)
 - [ ] [ISSUE-008: Headless Browser Smoke-Test Harness](ISSUE-008-headless-browser-smoke-harness.md)
 - [ ] [ISSUE-009: Grow The Builtin Renderer Set](ISSUE-009-grow-builtin-renderer-set.md)
+- [ ] [ISSUE-010: Guided Tour For Feature Explanation](ISSUE-010-guided-tour-for-feature-explanation.md)
