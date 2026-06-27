@@ -167,7 +167,12 @@ function hasJson(ctx) {
 }
 
 function isJsonContentType(contentType) {
-  return typeof contentType === 'string' && contentType.includes('json');
+  // NDJSON / JSON Lines contain the substring "json" but are line-delimited, so
+  // they must fall through to the jsonLines renderer instead of being parsed as
+  // a single JSON document here.
+  return typeof contentType === 'string'
+    && contentType.includes('json')
+    && !isNdjsonContentType(contentType);
 }
 
 function tryParse(text) {

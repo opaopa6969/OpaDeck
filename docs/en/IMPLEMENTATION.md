@@ -66,11 +66,18 @@ Implemented:
 - execution store with history
 - **request builder** (ISSUE-001): serializes an operation + field state into a
   `RequestPreviewModel` (query serialization, path params, header fields,
-  raw/form bodies, content-type inference, curl)
+  raw/form bodies, content-type inference, curl). Body kinds: `none` / `rawField`
+  / `form` (urlencoded) / **`multipart`** (fixed boundary so preview/curl/execute
+  stay byte-identical). Checkbox fields serialize with HTML semantics via
+  **`field.checkedValue` / `uncheckedValue`** (unchecked omits the param instead
+  of leaking the literal `"true"`/`"false"`).
 - **HTTP executor** (ISSUE-001): runs the preview through an injectable `fetch`
   with AbortController-based timeout (driven by the clock) and external cancel,
   mapping outcomes onto the execution store (success / error / timeout /
-  cancelled) and publishing the `execution.*` bus events
+  cancelled) and publishing the `execution.*` bus events. An optional
+  **`onProgress`** hook reads NDJSON/JSON Lines responses incrementally via
+  `getReader()` (newline boundaries, partial-line buffered) so hosts can render
+  partial results while the store still only sees begin → succeed.
 - runtime service aggregation
 
 ## 3. Typed registries and builtin renderers
@@ -158,6 +165,30 @@ File:
 
 Serves the showcase directory without external dependencies.
 
+## 8. Post-incubation additions
+
+Driven by the first real consumers (an admin console + a Japan address map):
+
+- **App shell** ([src/app/workbench.js](../../src/app/workbench.js)):
+  `createWorkbench({ document, app, mounts, executor, executions, ... })` wires an
+  AppDefinition into a running three-surface shell (nav → detail+form → results)
+  so callers stop hand-assembling the builtin panel renderers, per-operation field
+  state, the live request preview, and the execution subscription. The live
+  preview is updated without re-rendering the form (inputs keep focus).
+  `renderResult` / `filterMatch` are overridable.
+- **Fullscreen interface** ([src/app/fullscreen.js](../../src/app/fullscreen.js)):
+  `makeFullscreenable(element, { onChange })` — Fullscreen API with a CSS-overlay
+  fallback, ESC to exit, a toggle button, and an `onChange(isFullscreen)` for
+  canvas/WebGL renderers to recompute size.
+- **geoMap renderer** ([src/renderers/geomap.js](../../src/renderers/geomap.js)):
+  `createGeoMapPanelRenderer({ mapFactory })` mounts a pluggable map engine into a
+  panel/result rect. The core stays free of three.js / map assets; the host injects
+  `mapFactory(canvas, { data, onPick })`. Fullscreen is built in.
+- **Renderer fixes/additions**: `jsonFoldable` no longer swallows NDJSON/JSON Lines
+  (content-type containing `json` but line-delimited falls through to `jsonLines`).
+- **Tour**: a `focusSelector` command + `kind:'selector'` target spotlights any CSS
+  selector (elements not tied to operation/field/panel — view chips, map layer UI).
+
 ## Verification status
 
 ## Verified by automated tests
@@ -168,10 +199,14 @@ Run on Node.js >= 18 (`npm test`, which invokes `node --test`), across
 - the core boundary invariant (`tests/core-boundary.test.js`)
 - runtime stores and scheduler (`tests/runtime.test.js`)
 - typed registries (`tests/registry.test.js`)
+- request builder bodies/checkbox (`tests/request-builder.test.js`)
 - request builder + HTTP executor (`tests/http-executor.test.js`)
+- NDJSON streaming via `onProgress` (`tests/http-executor-streaming.test.js`)
+- the app-shell workbench (`tests/workbench.test.js`)
+- the geoMap renderer + fullscreen (`tests/geomap.test.js`)
 - the `.opsui` compiler (`tests/opsui.test.js`)
-- the tour runtime (`tests/tour.test.js`)
-- the builtin renderers (`tests/renderers.test.js`)
+- the tour runtime + `focusSelector` (`tests/tour.test.js`)
+- the builtin renderers (`tests/renderers.test.js`, `tests/renderers-extra.test.js`)
 - the geoScene renderer + Japan preset (`tests/geo-scene.test.js`)
 
 DOM-facing renderers are exercised headlessly against a minimal fake DOM

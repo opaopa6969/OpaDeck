@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpaDeck Components</title>
+  <link rel="stylesheet" href="./style.css">
+  <style>
+    /* このページ専用の最小レイアウト + 新コンポーネントの最小スタイル */
+    .cmp { padding: 18px 24px; }
+    .cmp h1 { font-size: 20px; }
+    .cmp h2 { font-size: 15px; margin-top: 28px; color: #2a3a4a; }
+    .cmp .lede { color: #4a5a6a; max-width: 760px; }
+    .workbench { display: grid; grid-template-columns: 220px 1fr 1fr; gap: 1px; background: #d4dde6;
+      border: 1px solid #c2cdd8; border-radius: 10px; overflow: hidden; height: 420px; }
+    .workbench > div { background: #fff; overflow: auto; padding: 10px; }
+    .geo-box { position: relative; width: 520px; height: 340px; border: 1px solid #c2cdd8; border-radius: 10px;
+      overflow: hidden; background: #0e1116; }
+    /* builtin renderer / panel の素の構造に最小限の見た目を与える(ライブラリは CSS 非同梱) */
+    .opa-nav-group-label { font-size: 11px; text-transform: uppercase; color: #8a97a4; margin: 6px 0 2px; }
+    .opa-nav-list { list-style: none; margin: 0; padding: 0; }
+    .opa-nav-item { display:block; width:100%; text-align:left; border:0; background:transparent; padding:5px 8px;
+      border-radius:6px; cursor:pointer; font-size:13px; }
+    .opa-nav-item.active { background:#2c4a7c; color:#fff; }
+    .opa-field { display:flex; flex-direction:column; gap:3px; margin-bottom:10px; }
+    .opa-field-label { font-size:12px; color:#5a6a7a; }
+    .opa-input, .opa-textarea, .opa-select { border:1px solid #c2cdd8; border-radius:6px; padding:5px 8px; font:inherit; }
+    .opa-submit { background:#2c4a7c; color:#fff; border:0; border-radius:6px; padding:7px 16px; cursor:pointer; }
+    .opa-live-preview { margin-top:12px; border-top:1px dashed #c2cdd8; padding-top:8px; font-size:12px; }
+    .opa-preview-method { color:#b06a00; font-weight:700; margin-right:6px; }
+    .opa-result-card { border:1px solid #c2cdd8; border-radius:8px; margin-bottom:8px; }
+    .opa-result-head { display:flex; gap:8px; padding:6px 10px; background:#eef2f6; font-size:12px; }
+    .opa-fs-btn { position:absolute; top:8px; right:8px; z-index:5; background:rgba(20,26,34,.7); color:#fff;
+      border:1px solid #2c3340; border-radius:8px; width:30px; height:30px; cursor:pointer; }
+    .opa-geomap, .opa-geomap-canvas { width:100%; height:100%; display:block; }
+    .opa-fs-overlay { background:#0e1116; }
+  </style>
+</head>
+<body>
+  <div class="cmp">
+    <h1>OpaDeck Components（ライブラリ利用者向け）</h1>
+    <p class="lede">ランタイム部品とレンダラを実際に動かしたデモ。各コンポーネントの最小コードは
+      <a href="../docs/en/USING-OPADECK.md">USING-OPADECK.md</a> 参照。OpaDeck は CSS を同梱しないので、
+      このページは表示用に最小スタイルだけ当てている。</p>
+
+    <h2>createWorkbench — AppDefinition を 3 面シェルへ自動配線</h2>
+    <p class="lede">nav → detail+form（ライブ request プレビュー付き）→ results。下は内蔵の
+      fake executor（canned JSON）で実行した例。</p>
+    <div class="workbench">
+      <div id="wb-nav"></div>
+      <div id="wb-detail"></div>
+      <div id="wb-results"></div>
+    </div>
+
+    <h2>geoMap + fullscreen — 任意の地図エンジンをパネル rect へ注入</h2>
+    <p class="lede">geoMap は three.js / 地図アセットに非依存。host が <code>mapFactory(canvas, {data})</code>
+      を供給する（下は最小の canvas プロット）。右上ボタンで全画面（Fullscreen API / オーバーレイ）。</p>
+    <div class="geo-box" id="geo-box"></div>
+  </div>
+
+  <script type="module" src="./components.js"></script>
+</body>
+</html>

@@ -25,6 +25,11 @@ export function createHttpExecutor(options = {}) {
   const defaultTimeoutMs = Number(options.defaultTimeoutMs) || 0;
   const AbortControllerImpl = options.AbortController
     || (typeof globalThis.AbortController === 'function' ? globalThis.AbortController : null);
+  // Optional live hook for line-delimited (NDJSON/JSON Lines) responses. The
+  // ExecutionStore still only sees begin -> succeed; onProgress is an out-of-band
+  // callback invoked on newline boundaries while the body streams, so a host can
+  // render partial results without the store needing a "partial" state.
+  const onProgress = typeof options.onProgress === 'function' ? options.onProgress : null;
 
   return {
     preview(operation, fieldState, callOptions = {}) {
@@ -67,7 +72,7 @@ export function createHttpExecutor(options = {}) {
         signal: controller ? controller.signal : undefined,
       });
       cleanup(cancelTimer, detachSignal);
-      const snapshot = await readResponse(response, startedAt);
+      const snapshot = await readResponse(response, startedAt, operation);
       if (response.ok) {
         return executions.succeed(snapshot);
       }
@@ -104,12 +109,20 @@ export function createHttpExecutor(options = {}) {
     }
   }
 
-  async function readResponse(response, startedAt) {
+  async function readResponse(response, startedAt, operation) {
     const contentType = typeof response.headers?.get === 'function'
       ? response.headers.get('content-type')
       : (response.contentType || null);
+
+    const canStream = onProgress
+      && isLineStreamable(contentType)
+      && response.body
+      && typeof response.body.getReader === 'function';
+
     let bodyText = '';
-    if (typeof response.text === 'function') {
+    if (canStream) {
+      bodyText = await readLineStream(response, contentType, operation, startedAt);
+    } else if (typeof response.text === 'function') {
       bodyText = await response.text();
     } else if (typeof response.bodyText === 'string') {
       bodyText = response.bodyText;
@@ -130,6 +143,45 @@ export function createHttpExecutor(options = {}) {
       bodyJson,
       durationMs: Math.max(0, clock.now() - startedAt),
     };
+  }
+
+  async function readLineStream(response, contentType, operation, startedAt) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    const fqid = operationFqid(operation);
+    let pendingTail = '';
+    let fullText = '';
+
+    const emit = (done) => {
+      onProgress({
+        operationFqid: fqid,
+        contentType,
+        bodyText: fullText,
+        done,
+        durationMs: Math.max(0, clock.now() - startedAt),
+      });
+    };
+
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (value) {
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+        pendingTail += chunk;
+        // Only notify on completed lines so subscribers never see a half-line.
+        const lastNewline = pendingTail.lastIndexOf('\n');
+        if (lastNewline >= 0) {
+          pendingTail = pendingTail.slice(lastNewline + 1);
+          emit(false);
+        }
+      }
+      if (done) {
+        fullText += decoder.decode();
+        emit(true);
+        break;
+      }
+    }
+    return fullText;
   }
 
   function wireExternalCancel(controller, state, signal) {
@@ -168,4 +220,9 @@ function cleanup(cancelTimer, detachSignal) {
   if (typeof detachSignal === 'function') {
     detachSignal();
   }
+}
+
+function isLineStreamable(contentType) {
+  return typeof contentType === 'string'
+    && (contentType.includes('ndjson') || contentType.includes('jsonl'));
 }

@@ -20,6 +20,14 @@ test('tourTargetSelector builds stable data-attribute selectors', () => {
   assert.equal(tourTargetSelector({ kind: 'operation', operationId: 'index.rebuild' }), '[data-op-id="index.rebuild"]');
   assert.equal(tourTargetSelector({ kind: 'field', operationId: 'index.rebuild', fieldId: 'payload' }), '[data-field-id="index.rebuild::payload"]');
   assert.equal(tourTargetSelector({ kind: 'panel', panelId: 'nav' }), '[data-panel-id="nav"]');
+  assert.equal(tourTargetSelector({ kind: 'selector', selector: '.opa-result-toolbar' }), '.opa-result-toolbar');
+});
+
+test('focusSelector handler spotlights an arbitrary CSS selector', () => {
+  const registry = createTourCommandHandlerRegistry().registerAll(createDefaultTourCommandHandlers());
+  const result = registry.runCommand({ kind: 'focusSelector', selector: '#opa-results' }, {});
+  assert.equal(result.selector, '#opa-results');
+  assert.equal(result.target.kind, 'selector');
 });
 
 test('command handler registry rejects handlers without run() and resolves by kind', () => {

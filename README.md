@@ -7,6 +7,7 @@ OpaDeck is an operation-centric internal ops workbench with first-class data sou
 ## Docs
 
 - English:
+  - [**Using OpaDeck（ライブラリ利用者ガイド・スクショ付き）**](docs/en/USING-OPADECK.md)
   - [Constitution](docs/en/CONSTITUTION.md)
   - [Roadmap](docs/en/ROADMAP.md)
   - [DSL](docs/en/DSL.md)
@@ -67,5 +68,9 @@ python3 scripts/serve.py
 Then open:
 
 ```txt
-http://127.0.0.1:8077/showcase/
+http://127.0.0.1:8077/showcase/              # 運用モデル / レンダラ / geoScene / ツアー
+http://127.0.0.1:8077/showcase/components.html  # createWorkbench / geoMap + fullscreen
 ```
+
+スクリーンショット付きの利用ガイドは [docs/en/USING-OPADECK.md](docs/en/USING-OPADECK.md)
+（画像は `node showcase/capture-screenshots.mjs` で再生成）。
