@@ -110,7 +110,8 @@ Implemented (ISSUE-004):
   `validateAppDefinition` so reference problems surface as `ProblemEntry`
 - parse failures are reported as a single located `dsl.parse.error` problem
 
-Not parsed yet (still authored as JS objects): layout / help / tour blocks.
+The parser also supports layout / help / tour blocks and validates their
+references at compile time. `examples/full-app.opsui` is the complete fixture.
 
 ## 5. Tour runtime
 
@@ -184,7 +185,7 @@ Driven by the first real consumers (an admin console + a Japan address map):
 
 ## Verified by automated tests
 
-Run on Node.js >= 18 (`npm test`, which invokes `node --test`): 69 tests across
+Run on Node.js >= 18 (`npm test`, which invokes `node --test`): 71 tests across
 
 - core validation rules (`tests/validate-app.test.js`)
 - runtime stores and scheduler (`tests/runtime.test.js`)
@@ -235,5 +236,4 @@ This implementation is now enough to claim that:
 - maps are a first-class, data-driven surface (generic renderer, Japan dataset)
 - the `.opsui` compile path is proven for a narrow subset
 
-It is still not enough to claim that the DSL is complete (no layout/help/tour
-blocks yet) or that the renderer contracts are final.
+It is still not enough to claim that the DSL or renderer contracts are final.

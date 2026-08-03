@@ -10,6 +10,7 @@ export * from './runtime/execution-store.js';
 export * from './runtime/request-builder.js';
 export * from './runtime/http-executor.js';
 export * from './runtime/services.js';
+export * from './runtime/url-state.js';
 
 export * from './dsl/opsui.js';
 

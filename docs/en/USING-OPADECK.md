@@ -20,7 +20,7 @@ import {
   createWorkbench, createGeoMapPanelRenderer, makeFullscreenable,
   createTourRuntime, createDefaultTourCommandHandlers, createTourCommandHandlerRegistry, createDefaultTourOverlay,
   renderGeoScene, validateAppDefinition, compileOpsui,
-} from './opadeck/index.js';
+} from './src/index.js';
 ```
 
 ---
@@ -160,7 +160,7 @@ tour.play({ id: 'intro', steps: [
 
 ## 8. `.opsui` DSL（任意）
 
-operation を JS オブジェクトでなく DSL で書ける（layout/help/tour ブロックは未対応）。
+operation、layout、help、tour を JS オブジェクトでなく DSL で書ける。
 
 ```js
 const { app, problems } = compileOpsui(opsuiSource);  // 正規化 + validateAppDefinition

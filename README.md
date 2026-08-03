@@ -25,6 +25,7 @@ OpaDeck is an operation-centric internal ops workbench with first-class data sou
   - [コンポーネント / Components](docs/ja/COMPONENTS.md)
   - [ランタイム構成 / Runtime Orchestration](docs/ja/RUNTIME_ORCHESTRATION.md)
   - [実装状況 / Implementation Status](docs/ja/IMPLEMENTATION.md)
+  - [URL State](docs/ja/URL_STATE.md)
 
 ## Issues
 

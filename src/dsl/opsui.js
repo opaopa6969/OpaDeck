@@ -4,9 +4,8 @@ import { createProblem } from '../core/problem.js';
 
 // A deliberately narrow loader for the `.opsui` DSL. It supports the subset
 // proven by docs/en/DSL.md: app / datasource / group / operation / field /
-// request / result. Layout, help, and tour blocks are intentionally not parsed
-// yet; the runtime still accepts those via JS objects. The goal here is to
-// prove the compile path, not to ship a full language.
+// request / result / layout / help / tour. The goal is to keep the language
+// small while proving the compile path and reference validation.
 //
 // compileOpsui returns { app, problems }:
 //   - parse errors are reported as a single located `dsl.parse.error` problem

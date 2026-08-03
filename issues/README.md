@@ -20,3 +20,7 @@ commit, the source files, and the tests).
 - [ ] [ISSUE-008: Headless Browser Smoke-Test Harness](ISSUE-008-headless-browser-smoke-harness.md)
 - [ ] [ISSUE-009: Grow The Builtin Renderer Set](ISSUE-009-grow-builtin-renderer-set.md)
 - [ ] [ISSUE-011: Guided Tour For Feature Explanation](ISSUE-011-guided-tour-for-feature-explanation.md)
+- [ ] [ISSUE-012: Reconcile Status Of Implemented Open Issues (007/009/011)](ISSUE-012-reconcile-status-of-implemented-open-issues.md)
+- [ ] [ISSUE-013: Resolve EXTENSIONS.md Extension Validation Gap](ISSUE-013-resolve-extensions-validation-gap.md)
+- [ ] [ISSUE-014: Document URL State And Missing Test Files In English IMPLEMENTATION.md](ISSUE-014-document-url-state-and-missing-tests-in-en-implementation.md)
+- [ ] [ISSUE-015: Document Or Sanitize inlineSvg Renderer Markup Injection](ISSUE-015-inline-svg-markup-injection-contract.md)
