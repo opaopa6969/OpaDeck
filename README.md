@@ -75,3 +75,14 @@ http://127.0.0.1:8077/showcase/components.html  # createWorkbench / geoMap + ful
 
 スクリーンショット付きの利用ガイドは [docs/en/USING-OPADECK.md](docs/en/USING-OPADECK.md)
 （画像は `node showcase/capture-screenshots.mjs` で再生成）。
+
+## MCP (volta)
+
+OpaDeck は [volta-mcp](https://github.com/opaopa6969/volta-mcp) ファサードに **skill-only** として参加している（namespace: `opadeck`）。常駐サーバは持たず、`.opsui` DSL の記述手順を skill で配信する。
+
+- **Skill**: `opadeck__write-opsui-app` — DSL 文法・バリデーション規則・レイアウトプリミティブ・renderer 登録
+- **取得**: `skill__resolve(goal=".opsui アプリを書きたい")` または `skill__list(namespace="opadeck")`
+- **設計**: [docs/mcp/DESIGN.md](docs/mcp/DESIGN.md)
+- **調査**: [docs/mcp/SURVEY.md](docs/mcp/SURVEY.md)
+
+純粋関数（`compileOpsui` / `validateAppDefinition` / `buildRequestPreview`）は `node -e` で直接呼べる。需要が顕在化したときは薄い MCP サーバ（`wrap`）へ移行する。
