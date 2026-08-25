@@ -44,3 +44,20 @@ blocks, producing a complete `AppDefinition` from source.
 
 Stay narrow per ISSUE-004's lesson: encode the documented AST faithfully rather
 than inventing new DSL features. The grammar should mirror `docs/en/DSL.md`.
+
+## Status
+
+Done on `main`. Resolving commit: `e4d55e8` ("feat(dsl): parse layout, help, and
+tour blocks in .opsui (ISSUE-007)").
+
+- implementation: `src/dsl/opsui.js` — `parseLayout` (line 417),
+  `parseHelpBlock` (line 569), `parseTour` (line 635), plus `parseTourStep`
+- validation: layout/help/tour references flow through the existing
+  `validateAppDefinition` and surface as `ProblemEntry`; malformed layout syntax
+  reports a located `dsl.parse.error`
+- tests: `tests/opsui-layout-help-tour.test.js` (4 tests, passing)
+- example: `examples/full-app.opsui` exercises every block and compiles cleanly
+
+Acceptance criteria met: a complete app can be defined purely in `.opsui`,
+references are validated, malformed syntax reports a located parse error, and
+the example compiles with a covering test.

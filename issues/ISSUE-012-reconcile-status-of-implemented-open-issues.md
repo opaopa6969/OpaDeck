@@ -82,3 +82,25 @@ the maintainer's judgment.
 ## Notes
 
 Keep this to documentation/tracker only. No source changes.
+
+## Status
+
+Resolved (docs-only). Reconciled the tracker with the actual state on `main`:
+
+- **ISSUE-007**: Done on `main`. Added a `## Status` section with the resolving
+  commit (`e4d55e8`), source files, and tests. Moved from "Open" to "Done" in
+  `issues/README.md`.
+- **ISSUE-009**: Done on `main` (optional `KeyValueEditor` explicitly deferred).
+  Added a `## Status` section with the resolving commit (`aba7f56`), source
+  files, and tests. Moved from "Open" to "Done" in `issues/README.md`.
+- **ISSUE-011**: Done on `main` after integrating
+  `feat/checkbox-multipart-workbench` (implementation commit `08b5467`).
+  Replaced the stale "Open（未着手）" status with the resolving commit, source
+  files, and tests. Moved from "Open" to "Done" in `issues/README.md`.
+- **ISSUE-008**: genuinely unimplemented, stays Open (out of scope here, as the
+  issue body states).
+
+Human gate: per the issue, the Done call belongs to the maintainer. The
+maintainer requested integration into the default branch, confirming the Done
+classification for 007/009/011. `npm test` = 71 tests, all pass (docs-only
+change, sanity check).

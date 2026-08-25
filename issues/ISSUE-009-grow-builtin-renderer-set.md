@@ -44,3 +44,22 @@ them data-driven and on the shared `h` DOM helper so they stay headless-testable
 Keep renderers generic and data-driven, following the geoScene precedent
 (generic renderer, dataset/props supply the specifics). Prefer extending the
 shared `h` helper over reaching for the raw DOM API.
+
+## Status
+
+Done on `main` (optional `KeyValueEditor` deferred). Resolving commit:
+`aba7f56` ("feat(renderers): grow the builtin renderer set (ISSUE-009)").
+
+- implementation: `src/renderers/field-renderers.js:83` `jsonEditor`;
+  `src/renderers/result-renderers.js:41` `jsonLines`, `:64` `text`,
+  `:64` `inlineSvg` (canRender on `image/svg+xml`); `src/renderers/time-series.js`
+  `timeSeries`
+- registration: all new renderers register via `registerBuiltinRenderers()`
+- tests: `tests/renderers-extra.test.js` (6 tests, passing) covers `jsonEditor`
+  validity reporting, `text` / `jsonLines` / `inlineSvg` / `timeSeries` rendering,
+  and registration order
+- showcase: the renderer set is wired into the showcase result path
+
+Acceptance criteria met for the non-optional tranche (`jsonEditor`, `inlineSvg`,
+`jsonLines`, `text`, `timeSeries`). The optional `KeyValueEditor` was scoped out
+("optional" in the issue body) and remains a follow-up.
