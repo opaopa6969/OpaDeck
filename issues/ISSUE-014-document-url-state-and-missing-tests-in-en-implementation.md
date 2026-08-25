@@ -73,3 +73,16 @@ This affects doc organization, so it needs a maintainer call.
 ## Notes
 
 Docs-only. No code changes.
+
+## Status
+
+Resolved (docs-only). The English `docs/en/IMPLEMENTATION.md` now documents
+URL state alongside the other post-incubation additions, and the
+"Verified by automated tests" bullet list enumerates all 15 test files
+including `tests/opsui-layout-help-tour.test.js` and
+`tests/url-state.test.js`.
+
+Decision on the Human gate: kept the two §8 sections as different cuts
+(en §8 = workbench/fullscreen/geomap/url-state, ja §8 = app shell + URL
+state). Only the English doc was edited; no renumbering or restructuring.
+`npm test` = 71 tests, all pass (docs-only change, sanity check).

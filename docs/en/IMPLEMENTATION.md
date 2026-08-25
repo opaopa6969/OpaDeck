@@ -176,6 +176,10 @@ Driven by the first real consumers (an admin console + a Japan address map):
   `createGeoMapPanelRenderer({ mapFactory })` mounts a pluggable map engine into a
   panel/result rect. The core stays free of three.js / map assets; the host injects
   `mapFactory(canvas, { data, onPick })`. Fullscreen is built in.
+- **URL state** ([src/runtime/url-state.js](../../src/runtime/url-state.js)):
+  `createUrlState` provides an adapter-style History API integration (initial
+  URL, push/replace, popstate) so the host can mirror a piece of app state to the
+  URL without the core owning the URL shape.
 - **Renderer fixes/additions**: `jsonFoldable` no longer swallows NDJSON/JSON Lines
   (content-type containing `json` but line-delimited falls through to `jsonLines`).
 - **Tour**: a `focusSelector` command + `kind:'selector'` target spotlights any CSS
@@ -196,9 +200,11 @@ Run on Node.js >= 18 (`npm test`, which invokes `node --test`): 71 tests across
 - the app-shell workbench (`tests/workbench.test.js`)
 - the geoMap renderer + fullscreen (`tests/geomap.test.js`)
 - the `.opsui` compiler (`tests/opsui.test.js`)
+- the `.opsui` layout/help/tour blocks (`tests/opsui-layout-help-tour.test.js`)
 - the tour runtime + `focusSelector` (`tests/tour.test.js`)
 - the builtin renderers (`tests/renderers.test.js`, `tests/renderers-extra.test.js`)
 - the geoScene renderer + Japan preset (`tests/geo-scene.test.js`)
+- the URL-state adapter (`tests/url-state.test.js`)
 
 DOM-facing renderers are exercised headlessly against a minimal fake DOM
 (`tests/helpers/fake-dom.js`).
