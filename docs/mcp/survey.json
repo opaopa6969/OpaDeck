@@ -1,0 +1,100 @@
+{
+  "repo": "OpaDeck",
+  "surveyed_at": "2026-08-22T00:00:00Z",
+  "kind": "library",
+  "summary": "Operation-centric な内部運用 UI ワークベンチの ESM ライブラリ。.opsui DSL のコンパイル・バリデーション、HTTP リクエスト組み立て・実行、geoScene SVG 描画、help/tour ランタイムを提供する。サーバなし・DOM 依存のブラウザ向けフレームワーク。",
+  "decision": "skill-only",
+  "decision_reason": "純粋関数（DSL compile / validate / request-preview）は1秒以内で副作用なし。常駐プロセスにする価値が薄く、エージェントが直接 node で叩けば済む。DOM 依存の renderer / workbench / tour は MCP tool に向かない（ヘッドレス DOM で SVG を出す用途が限定的）。既存 MCP との重複もないが、他サービスとの組み合わせ需要も薄い。一方、OpaDeck アプリを .opsui で記述するための DSL 文法・レイアウト規則・renderer 登録手順は、エージェントがアプリ生成タスクで参照する手続き知識として skill で配る価値がある。spec / guide を resource で出せば discovery にも貢献する。",
+  "existing": {
+    "http_api": false,
+    "cli": false,
+    "mcp": false,
+    "healthz": false,
+    "volta_manifest": false,
+    "hosted_url": null
+  },
+  "proposed_namespace": "opadeck",
+  "capabilities": [
+    {
+      "verb": ".opsui DSL をコンパイル（正規化＋バリデーション）して AppDefinition と ProblemEntry[] を返す",
+      "kind": "tool",
+      "name": "compile",
+      "io": "opsui text → { app: AppDefinition, problems: ProblemEntry[] }",
+      "side_effect": "none",
+      "long_running": false,
+      "maps_to": "src/dsl/opsui.js:compileOpsui()"
+    },
+    {
+      "verb": "AppDefinition をバリデートして ProblemEntry[] を返す",
+      "kind": "tool",
+      "name": "validate",
+      "io": "AppDefinition → ProblemEntry[]",
+      "side_effect": "none",
+      "long_running": false,
+      "maps_to": "src/core/validate-app.js:validateAppDefinition()"
+    },
+    {
+      "verb": "operation + field state から HTTP RequestPreview を組み立てる",
+      "kind": "tool",
+      "name": "build_request_preview",
+      "io": "(OperationDefinition, fieldState) → { method, url, headers, bodyText, curl }",
+      "side_effect": "none",
+      "long_running": false,
+      "maps_to": "src/runtime/request-builder.js:buildRequestPreview()"
+    },
+    {
+      "verb": "OpaDeck の能力仕様（Core Model / DSL 文法 / 構成要素）",
+      "kind": "resource",
+      "name": "spec",
+      "uri": "opadeck://spec"
+    },
+    {
+      "verb": ".opsui DSL の書き方・レイアウトプリミティブ・help/tour・renderer 登録の使い方",
+      "kind": "resource",
+      "name": "guide",
+      "uri": "opadeck://guide"
+    },
+    {
+      "verb": "OpaDeck アプリを .opsui で記述する手順（DSL 文法・バリデーション規則・レイアウト・help/tour・renderer 登録）",
+      "kind": "skill",
+      "name": "write-opsui-app",
+      "locality": "repo"
+    }
+  ],
+  "composition_examples": [
+    "opadeck__compile → validate で .opsui ファイルの構文・参照エラーを一括チェックし、結果を agent-log-broker に記録する",
+    "opadeck__build_request_preview でリクエスト形状を確認 → adoyose__normalize で住所を正規化 → opadeck アプリの geoScene レイヤーに流す（手順は skill で案内）"
+  ],
+  "dependencies": [
+    {
+      "repo": "japan-map-viewer",
+      "direction": "depends_on",
+      "capability": "geoMap renderer の mapFactory として注入可能な地図エンジン（コード上の言及のみ、直接呼び出しはなし）",
+      "exists_now": true,
+      "note": "src/renderers/geomap.js のコメントで mapFactory の注入例として言及される設計。実行時依存ではなく host 側の選択。japan-map-viewer 自身は MCP を持たない"
+    },
+    {
+      "repo": "tetsugo",
+      "direction": "depends_on",
+      "capability": "geoMap renderer の mapFactory（table-engine ベースのボード描画）",
+      "exists_now": true,
+      "note": "src/renderers/geomap.js コメントで tetsugo の mapcore が mapFactory の想定例として言及される。実行時依存ではない。tetsugo は MCP を持たない"
+    }
+  ],
+  "library_serve": {
+    "needed": false,
+    "new_work": [],
+    "runtime": "node",
+    "estimated_effort": "S"
+  },
+  "risks": [
+    "DOM 依存の renderer / workbench / tour を MCP tool にすると、ヘッドレス環境で DOM を偽造する必要があり実行・保守コストが高い割にエージェントが呼びたい操作にならない",
+    "純粋関数（compile / validate / build_request_preview）を常駐サーバにすると、起動1秒以内の処理のためにプロセス・ポート・healthz を維持するオーバーヘッドが割に合わない",
+    "本リポジトリは incubation 段階（v0.0.1, private:true）で DSL・renderer 契約が未確定。MCP 化すると契約変更のたびにファサード側の追従が必要になる"
+  ],
+  "open_questions": [
+    "OpaDeck を使って .opsui アプリを生成・検証するエージェントタスクの頻度はどの程度か（需要が低ければ skill も不要）",
+    "showcase を静的ホスティングして spec/guide resource の配信元にする想定か、それば別の resource ホストを使うか",
+    "geoScene の SVG 描画を「テキスト in → SVG out」の tool にする需要があるか（ヘッドレス DOM が必要、japan-map-viewer と重複する懸念）"
+  ]
+}

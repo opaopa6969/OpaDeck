@@ -91,6 +91,7 @@ export function createWorkbench(options) {
     }
   }
 
+
   function renderDetail() {
     clear(mounts.detail);
     if (!currentOperation) {

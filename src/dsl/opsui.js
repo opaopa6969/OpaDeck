@@ -13,7 +13,7 @@ import { createProblem } from '../core/problem.js';
 //     and `app` is null;
 //   - on a successful parse, `app` is the normalized AppDefinition and
 //     `problems` are the structured reference diagnostics from
-//     validateAppDefinition (so DSL diagnostics align with ProblemEntry).
+//     validateApp (so DSL diagnostics align with ProblemEntry).
 
 const FIELD_TYPES = new Set(['text', 'textarea', 'checkbox', 'select', 'hidden']);
 const FIELD_PLACEMENTS = new Set(['query', 'body', 'header', 'path', 'state']);

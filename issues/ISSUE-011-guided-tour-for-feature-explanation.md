@@ -64,4 +64,20 @@ view 切替 = auto/table/cards/raw/map、geoMap パネル、2D/3D 切替、都�
 
 ## Status
 
-Open（未着手）。基盤は ISSUE-002 で実装済み。
+Done on `main`. Resolving implementation commit: `08b5467` ("feat(tour):
+任意DOMをスポットライトする focusSelector ハンドラを追加 (ISSUE-010)" — the
+commit message references ISSUE-010 due to an earlier numbering collision on
+`main`; this is the implementation for ISSUE-011).
+
+- implementation: `src/tour/handlers.js:57` `focusSelector` handler;
+  `src/tour/handlers.js:91` `kind: 'selector'` target resolved via
+  `tourTargetSelector(target)`
+- tests: `tests/tour.test.js` (7 tests, passing) covers the tour runtime and the
+  `focusSelector` command
+- showcase: the guided tour now runs on the shared tour runtime + default
+  overlay with selector-based spotlights
+
+Acceptance criteria met: the guided tour runs on the shared tour runtime and
+default overlay, and selector-based targets can spotlight the workbench UI.
+The `## Status` previously read "Open（未着手）" after implementation; ISSUE-012
+tracks the reconciliation that corrected it during the branch integration.

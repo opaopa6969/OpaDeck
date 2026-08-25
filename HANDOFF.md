@@ -1,6 +1,6 @@
 # OpaDeck Handoff
 
-Last updated: 2026-06-19 (JST)
+Last updated: 2026-08-01 (JST)
 
 ## Repository
 
@@ -36,9 +36,8 @@ Each `issues/ISSUE-00N-*.md` has a `## Status` footer with the resolving commit.
 
 ## Environment notes (this machine)
 
-- Node.js 18+ IS available here (nvm has v22 and v24; the default `node` is the
-  old v16, which lacks `node --test`). The repo ships `.nvmrc` (22); run
-  `nvm use && npm test`, or call a v22/v24 binary directly.
+- Node.js 18+ is required; the repo ships `.nvmrc` (22). Run
+  `nvm use && npm test`, or call a compatible binary directly.
 - `git push` works: `gh` is authenticated as `opaopa6969` and the SSH remote is
   reachable. (The previous sandbox could not push and published via the REST
   API; that constraint no longer applies here.)
@@ -57,7 +56,7 @@ operation and must be an explicit decision.
 
 ## Verification status
 
-- `npm test` (Node >= 18): 43 tests passing.
+- `npm test` (Node >= 18): 71 tests passing.
 - Showcase served over HTTP and the static module graph loads (200s).
 - Browser interaction is covered by a manual smoke-test checklist in
   `docs/en/IMPLEMENTATION.md`; no headless browser harness yet.
@@ -66,6 +65,5 @@ operation and must be an explicit decision.
 
 1. Decide the publish path for the divergent history (force-push local `main`,
    or open a PR from `feat/issue-batch`).
-2. Extend the `.opsui` DSL to layout / help / tour blocks.
-3. Add a headless browser harness to automate the showcase smoke test.
-4. Grow the renderer set (JsonEditor, inlineSvg, timeSeries) per COMPONENTS.md.
+2. Add a headless browser harness to automate the showcase smoke test.
+3. Grow and stabilize the renderer contracts per COMPONENTS.md.
