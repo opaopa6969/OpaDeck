@@ -42,6 +42,21 @@ node --version   # must print v18 or newer
 npm test         # runs `node --test`
 ```
 
+The real-browser showcase smoke test is a separate, optional path so the default
+unit suite remains dependency-free:
+
+```bash
+npm install
+npx playwright install chromium
+npm run test:browser
+```
+
+The smoke command starts `scripts/serve.py` on an available local port and checks
+feature selection, Geo Scene layers, execution, validation, and the guided tour.
+It reports `SKIP` when Playwright or Chromium is absent. Set
+`OPADECK_BROWSER_SMOKE_REQUIRED=1` in CI to turn a missing browser dependency into
+a failure.
+
 If you use `nvm`, the repo ships an `.nvmrc`:
 
 ```bash
@@ -55,8 +70,8 @@ You can also point at a specific interpreter without switching the default:
 ~/.nvm/versions/node/v22.14.0/bin/node --test
 ```
 
-See [docs/en/IMPLEMENTATION.md](docs/en/IMPLEMENTATION.md) for the browser
-smoke-test checklist that complements these unit tests.
+See [docs/en/IMPLEMENTATION.md](docs/en/IMPLEMENTATION.md) for the verification
+coverage.
 
 ## Showcase
 

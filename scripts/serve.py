@@ -20,7 +20,7 @@ def main() -> None:
             super().end_headers()
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"OpaDeck showcase: http://{args.host}:{args.port}/showcase/")
+    print(f"OpaDeck showcase: http://{args.host}:{server.server_port}/showcase/", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

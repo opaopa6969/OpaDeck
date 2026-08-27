@@ -218,6 +218,19 @@ Run on Node.js >= 18 (`npm test`, which invokes `node --test`), across
 DOM-facing renderers are exercised headlessly against a minimal fake DOM
 (`tests/helpers/fake-dom.js`).
 
+The showcase checklist below is also automated in a real Chromium DOM. Install
+the optional development dependency and browser once, then run it separately
+from the dependency-free unit suite:
+
+```bash
+npm install
+npx playwright install chromium
+npm run test:browser
+```
+
+The command reports `SKIP` if Playwright or Chromium is unavailable. CI should
+set `OPADECK_BROWSER_SMOKE_REQUIRED=1` to require the browser rather than skip.
+
 See the repository [README](../../README.md#testing) for the exact commands and
 the `.nvmrc`-based Node selection.
 
@@ -239,7 +252,6 @@ The showcase is served with `python3 scripts/serve.py` and opened at
 
 ## Not yet automated
 
-- headless browser execution of the showcase (manual checklist above stands in)
 - actual HTTP serving against a live backend
 
 ## Design judgment
