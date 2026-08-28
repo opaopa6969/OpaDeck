@@ -77,6 +77,36 @@ export function createBuiltinFieldRenderers() {
       },
     },
     {
+      // File picker: reads the selected file as text and feeds it through onChange
+      // as a plain string, exactly like the textarea renderer. No new body 'kind' is
+      // needed in request-builder.js — the field's value is just a string either way.
+      id: 'file',
+      supports: (field) => field.type === 'file',
+      render: (ctx) => {
+        const doc = ctx.document;
+        const status = h(doc, 'p', { class: 'opa-file-status', text: 'ファイル未選択' });
+        const control = h(doc, 'input', {
+          class: 'opa-file',
+          type: 'file',
+          name: serializedName(ctx.field),
+          on: {
+            change: async (event) => {
+              const file = event.target.files && event.target.files[0];
+              if (!file) {
+                status.textContent = 'ファイル未選択';
+                if (typeof ctx.onChange === 'function') ctx.onChange('', ctx.field);
+                return;
+              }
+              status.textContent = `${file.name} (${file.size.toLocaleString()} bytes)`;
+              const text = await file.text();
+              if (typeof ctx.onChange === 'function') ctx.onChange(text, ctx.field);
+            },
+          },
+        });
+        return fieldShell(ctx, control, { extra: status });
+      },
+    },
+    {
       // JSON editor: a textarea with live validity feedback. Raw JSON bodies are
       // common in internal ops, so this is first-class rather than a plain
       // textarea. It matches fields declared with type 'json'.

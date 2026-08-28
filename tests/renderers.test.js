@@ -58,6 +58,47 @@ test('checkbox field renderer reads checked state', () => {
   assert.deepEqual(changes, [false]);
 });
 
+test('file field renderer reads the selected file as text and reports it via onChange', async () => {
+  const document = createFakeDocument();
+  const changes = [];
+  const el = fieldRenderer('file').render({
+    document,
+    operationId: 'verify.batch',
+    field: { id: 'formbody', name: 'formbody', type: 'file', label: 'TSV' },
+    value: '',
+    onChange: (value) => changes.push(value),
+  });
+  const input = el.querySelector('input[type="file"]');
+  assert.equal(input.name, 'formbody');
+
+  const fakeFile = { name: 'input.tsv', size: 12, text: () => Promise.resolve('1\t090\t東京都...') };
+  input.files = [fakeFile];
+  input.dispatch('change', { target: input });
+  // file.text() は非同期。マイクロタスクが流れるのを待つ。
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.deepEqual(changes, ['1\t090\t東京都...']);
+});
+
+test('file field renderer reports empty string when the selection is cleared', async () => {
+  const document = createFakeDocument();
+  const changes = [];
+  const el = fieldRenderer('file').render({
+    document,
+    field: { id: 'f', type: 'file' },
+    value: '',
+    onChange: (value) => changes.push(value),
+  });
+  const input = el.querySelector('input[type="file"]');
+  input.files = [];
+  input.dispatch('change', { target: input });
+  await Promise.resolve();
+
+  assert.deepEqual(changes, ['']);
+});
+
+
 test('select field renderer renders options and marks the selected one', () => {
   const document = createFakeDocument();
   const el = fieldRenderer('select').render({
@@ -188,7 +229,7 @@ test('registerBuiltinRenderers populates every registry', () => {
   const resultRenderers = createResultRendererRegistry();
   const panelRenderers = createPanelRendererRegistry();
   registerBuiltinRenderers({ fieldRenderers, resultRenderers, panelRenderers });
-  assert.deepEqual(fieldRenderers.list().map((r) => r.id), ['text', 'textarea', 'checkbox', 'select', 'jsonEditor']);
+  assert.deepEqual(fieldRenderers.list().map((r) => r.id), ['text', 'textarea', 'checkbox', 'select', 'file', 'jsonEditor']);
   assert.deepEqual(resultRenderers.list().map((r) => r.id), ['jsonFoldable', 'tableResult', 'jsonLines', 'text', 'inlineSvg', 'timeSeries', 'geoScene']);
   assert.deepEqual(panelRenderers.list().map((r) => r.id), ['groupNav', 'operationTiles', 'operationDetail', 'resultStack', 'geoScene']);
 });
