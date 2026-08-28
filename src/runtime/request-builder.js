@@ -114,6 +114,17 @@ function buildBody(request, fields, fieldState) {
     const value = fieldState[body.fieldId];
     return value == null ? '' : String(value);
   }
+  if (body.kind === 'rawFieldAny') {
+    // Multiple alternative raw-body inputs (e.g. file upload vs. pasted text) share one
+    // body: whichever field the operator actually filled in wins, in declaration order.
+    for (const fieldId of body.fieldIds || []) {
+      const value = fieldState[fieldId];
+      if (value != null && value !== '') {
+        return String(value);
+      }
+    }
+    return '';
+  }
   if (body.kind === 'form') {
     const form = new URLSearchParams();
     for (const field of fields) {

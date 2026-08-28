@@ -43,16 +43,31 @@ function validateGroups(app, problems) {
 
 function validateRequestBody(operation, groupId, problems) {
   const body = operation.request && operation.request.body;
-  if (!body || body.kind !== 'rawField') {
+  if (!body) {
     return;
   }
-  if (!hasField(operation, body.fieldId)) {
-    problems.push(createProblem(
-      'request.body.rawField.missing',
-      'error',
-      `Operation ${fqid(groupId, operation.id)} references missing raw body field ${String(body.fieldId)}.`,
-      { target: { kind: 'operation', operationId: operation.id } }
-    ));
+  if (body.kind === 'rawField') {
+    if (!hasField(operation, body.fieldId)) {
+      problems.push(createProblem(
+        'request.body.rawField.missing',
+        'error',
+        `Operation ${fqid(groupId, operation.id)} references missing raw body field ${String(body.fieldId)}.`,
+        { target: { kind: 'operation', operationId: operation.id } }
+      ));
+    }
+    return;
+  }
+  if (body.kind === 'rawFieldAny') {
+    for (const fieldId of body.fieldIds || []) {
+      if (!hasField(operation, fieldId)) {
+        problems.push(createProblem(
+          'request.body.rawFieldAny.missing',
+          'error',
+          `Operation ${fqid(groupId, operation.id)} references missing raw body field ${String(fieldId)} (rawFieldAny).`,
+          { target: { kind: 'operation', operationId: operation.id } }
+        ));
+      }
+    }
   }
 }
 
