@@ -97,9 +97,18 @@ export function createBuiltinFieldRenderers() {
                 if (typeof ctx.onChange === 'function') ctx.onChange('', ctx.field);
                 return;
               }
-              status.textContent = `${file.name} (${file.size.toLocaleString()} bytes)`;
-              const text = await file.text();
-              if (typeof ctx.onChange === 'function') ctx.onChange(text, ctx.field);
+              // 読込完了まで field の値は空のまま（未読込のうちに Run を押しても空送信になる、
+              // という取り違えを防ぐため、少なくとも状態は明示する）。
+              status.textContent = `読み込み中… ${file.name}`;
+              if (typeof ctx.onChange === 'function') ctx.onChange('', ctx.field);
+              try {
+                const text = await file.text();
+                status.textContent = `✓ ${file.name} (${file.size.toLocaleString()} bytes)`;
+                if (typeof ctx.onChange === 'function') ctx.onChange(text, ctx.field);
+              } catch (error) {
+                status.textContent = `読み込み失敗: ${file.name} (${error && error.message ? error.message : error})`;
+                if (typeof ctx.onChange === 'function') ctx.onChange('', ctx.field);
+              }
             },
           },
         });

@@ -78,7 +78,30 @@ test('file field renderer reads the selected file as text and reports it via onC
   await Promise.resolve();
   await Promise.resolve();
 
-  assert.deepEqual(changes, ['1\t090\t東京都...']);
+  // 選択直後に空文字で1回(読込中に送信されても空になる旨の明示)、読込完了後に本文で1回。
+  assert.deepEqual(changes, ['', '1\t090\t東京都...']);
+});
+
+test('file field renderer reports empty string and a failure status when File.text() rejects', async () => {
+  const document = createFakeDocument();
+  const changes = [];
+  const el = fieldRenderer('file').render({
+    document,
+    field: { id: 'f', type: 'file' },
+    value: '',
+    onChange: (value) => changes.push(value),
+  });
+  const input = el.querySelector('input[type="file"]');
+  const failingFile = { name: 'broken.tsv', size: 3, text: () => Promise.reject(new Error('read failed')) };
+  input.files = [failingFile];
+  input.dispatch('change', { target: input });
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.deepEqual(changes, ['', '']);
+  const status = el.querySelector('.opa-file-status');
+  assert.match(status.textContent, /読み込み失敗/);
 });
 
 test('file field renderer reports empty string when the selection is cleared', async () => {
