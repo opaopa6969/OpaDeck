@@ -40,6 +40,32 @@ test('checkbox uncheckedValue is sent when provided', () => {
   assert.equal(buildRequestPreview(operation, { on: false }).url, '/api/x?on=0');
 });
 
+test('rawFieldAny body picks the first non-empty candidate field, in declaration order', () => {
+  const operation = {
+    id: 'upload',
+    groupId: 'verify',
+    request: {
+      method: 'POST',
+      url: '/api/verify',
+      contentType: 'text/plain',
+      body: { kind: 'rawFieldAny', fieldIds: ['file', 'pasted'] },
+    },
+    fields: [
+      { id: 'file', name: 'file', type: 'file', placement: 'body' },
+      { id: 'pasted', name: 'pasted', type: 'textarea', placement: 'body' },
+    ],
+  };
+
+  const fileWins = buildRequestPreview(operation, { file: 'FILE CONTENT', pasted: 'PASTED CONTENT' });
+  assert.equal(fileWins.bodyText, 'FILE CONTENT', 'earlier fieldId wins when both are filled');
+
+  const pastedFallsBack = buildRequestPreview(operation, { file: '', pasted: 'PASTED CONTENT' });
+  assert.equal(pastedFallsBack.bodyText, 'PASTED CONTENT', 'later fieldId is used when the earlier one is empty');
+
+  const neitherFilled = buildRequestPreview(operation, { file: '', pasted: '' });
+  assert.equal(neitherFilled.bodyText, '', 'empty string when no candidate is filled');
+});
+
 test('multipart body builds form-data parts with a stable boundary', () => {
   const operation = {
     id: 'upsert',

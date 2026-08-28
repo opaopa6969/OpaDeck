@@ -136,3 +136,34 @@ test('bare core validator only reports core problems, not companion ones', () =>
   assert.ok(!codes.some((code) => code.startsWith('help.')));
   assert.ok(!codes.some((code) => code.startsWith('result.geoScene')));
 });
+
+test('rawFieldAny body flags each missing candidate field, and stays silent when all resolve', () => {
+  const operation = (fieldIds) => ({
+    id: 'upload',
+    groupId: 'g',
+    title: 'Upload',
+    request: { method: 'POST', url: '/x', body: { kind: 'rawFieldAny', fieldIds } },
+    fields: [
+      { id: 'file', name: 'file', type: 'file', placement: 'body' },
+      { id: 'pasted', name: 'pasted', type: 'textarea', placement: 'body' },
+    ],
+  });
+
+  const missingCodes = validateAppDefinition({
+    id: 'demo',
+    version: 1,
+    title: 'Demo',
+    groups: [{ id: 'g', label: 'G', operations: [operation(['file', 'pasted', 'missingField'])] }],
+    dataSources: [],
+  }).map((problem) => problem.code);
+  assert.ok(missingCodes.includes('request.body.rawFieldAny.missing'));
+
+  const okCodes = validateAppDefinition({
+    id: 'demo',
+    version: 1,
+    title: 'Demo',
+    groups: [{ id: 'g', label: 'G', operations: [operation(['file', 'pasted'])] }],
+    dataSources: [],
+  }).map((problem) => problem.code);
+  assert.ok(!okCodes.includes('request.body.rawFieldAny.missing'));
+});
