@@ -77,6 +77,45 @@ export function createBuiltinFieldRenderers() {
       },
     },
     {
+      // File picker: reads the selected file as text and feeds it through onChange
+      // as a plain string, exactly like the textarea renderer. No new body 'kind' is
+      // needed in request-builder.js — the field's value is just a string either way.
+      id: 'file',
+      supports: (field) => field.type === 'file',
+      render: (ctx) => {
+        const doc = ctx.document;
+        const status = h(doc, 'p', { class: 'opa-file-status', text: 'ファイル未選択' });
+        const control = h(doc, 'input', {
+          class: 'opa-file',
+          type: 'file',
+          name: serializedName(ctx.field),
+          on: {
+            change: async (event) => {
+              const file = event.target.files && event.target.files[0];
+              if (!file) {
+                status.textContent = 'ファイル未選択';
+                if (typeof ctx.onChange === 'function') ctx.onChange('', ctx.field);
+                return;
+              }
+              // 読込完了まで field の値は空のまま（未読込のうちに Run を押しても空送信になる、
+              // という取り違えを防ぐため、少なくとも状態は明示する）。
+              status.textContent = `読み込み中… ${file.name}`;
+              if (typeof ctx.onChange === 'function') ctx.onChange('', ctx.field);
+              try {
+                const text = await file.text();
+                status.textContent = `✓ ${file.name} (${file.size.toLocaleString()} bytes)`;
+                if (typeof ctx.onChange === 'function') ctx.onChange(text, ctx.field);
+              } catch (error) {
+                status.textContent = `読み込み失敗: ${file.name} (${error && error.message ? error.message : error})`;
+                if (typeof ctx.onChange === 'function') ctx.onChange('', ctx.field);
+              }
+            },
+          },
+        });
+        return fieldShell(ctx, control, { extra: status });
+      },
+    },
+    {
       // JSON editor: a textarea with live validity feedback. Raw JSON bodies are
       // common in internal ops, so this is first-class rather than a plain
       // textarea. It matches fields declared with type 'json'.
