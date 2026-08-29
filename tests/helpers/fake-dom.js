@@ -126,6 +126,16 @@ class FakeElement extends FakeNode {
     return this.attributes.has(name);
   }
 
+  removeAttribute(name) {
+    this.attributes.delete(name);
+    if (name === 'id') {
+      this.id = '';
+    }
+    if (name === 'class') {
+      this.className = '';
+    }
+  }
+
   addEventListener(event, handler) {
     const arr = this.listeners.get(event) || [];
     arr.push(handler);
@@ -282,6 +292,10 @@ export function createFakeDocument() {
     createTextNode(text) {
       return new FakeText(text);
     },
+    parseFromHTML(markup, _mimeType) {
+      const parsed = { _doc: doc, querySelector(sel) { return parseHtmlToFake(this, markup).querySelector(sel); } };
+      return parsed;
+    },
     getElementById(id) {
       return byId.get(id) || null;
     },
@@ -308,6 +322,63 @@ export function createFakeDocument() {
     },
   };
   return doc;
+}
+
+// Minimal HTML/SVG parser for tests: tokenizes tags, attributes, and text into a
+// FakeElement tree. Sufficient to exercise inlineSvg sanitization without a real
+// DOMParser. It does NOT execute scripts or fire event handlers.
+function parseHtmlToFake(ctx, markup) {
+  const root = new FakeElement('div');
+  root.ownerDocument = ctx._doc;
+  const stack = [root];
+  let i = 0;
+  const n = markup.length;
+  while (i < n) {
+    if (markup[i] === '<') {
+      const close = markup.indexOf('>', i);
+      if (close < 0) { break; }
+      const tagContent = markup.slice(i + 1, close);
+      i = close + 1;
+      if (tagContent.startsWith('/')) {
+        stack.pop();
+        continue;
+      }
+      const selfClose = tagContent.endsWith('/');
+      const parsed = parseTag(tagContent, ctx._doc);
+      stack[stack.length - 1].appendChild(parsed.el);
+      if (!selfClose && !VOID_TAGS.has(parsed.name)) {
+        stack.push(parsed.el);
+      }
+    } else {
+      const next = markup.indexOf('<', i);
+      const text = next < 0 ? markup.slice(i) : markup.slice(i, next);
+      if (text.trim()) {
+        stack[stack.length - 1].appendChild(new FakeText(text));
+      }
+      i = next < 0 ? n : next;
+    }
+  }
+  return root;
+}
+
+const VOID_TAGS = new Set(['circle', 'line', 'rect', 'path', 'polyline', 'polygon', 'ellipse', 'image', 'use', 'br', 'img', 'input', 'meta', 'link']);
+
+function parseTag(content, doc) {
+  const selfClose = content.endsWith('/');
+  const body = selfClose ? content.slice(0, -1).trim() : content.trim();
+  const spaceIdx = body.search(/\s/);
+  const name = spaceIdx < 0 ? body : body.slice(0, spaceIdx);
+  const rest = spaceIdx < 0 ? '' : body.slice(spaceIdx + 1);
+  const el = new FakeElement(name);
+  el.ownerDocument = doc;
+  const attrRegex = /([\w:-]+)(?:\s*=\s*"([^"]*)"|'([^']*)'|([^\s>]+))?/g;
+  let match;
+  while ((match = attrRegex.exec(rest)) !== null) {
+    const attrName = match[1];
+    const attrValue = match[2] !== undefined ? match[2] : match[3] !== undefined ? match[3] : match[4] !== undefined ? match[4] : '';
+    el.setAttribute(attrName, attrValue);
+  }
+  return { name: name.toLowerCase(), el };
 }
 
 export { FakeElement, FakeText };
