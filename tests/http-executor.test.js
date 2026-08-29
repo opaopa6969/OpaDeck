@@ -128,6 +128,24 @@ test('execute maps a non-2xx response to an error record with a snapshot', async
   assert.ok(record.problems.some((p) => p.code === 'execution.http.status'));
 });
 
+test('execute treats a 304 Not Modified response as success', async () => {
+  const clock = createManualClock({ startAt: 0 });
+  const executions = createExecutionStore({ clock });
+  const executor = createHttpExecutor({
+    executions,
+    clock,
+    AbortController: globalThis.AbortController,
+    fetch: async () => ({
+      ok: false, status: 304, statusText: 'Not Modified',
+      headers: { get: () => null }, text: async () => '',
+    }),
+  });
+  const record = await executor.execute(GET_OP, { q: 'x' });
+  assert.equal(record.status, 'success');
+  assert.equal(record.response.status, 304);
+  assert.ok(!record.problems || record.problems.length === 0);
+});
+
 test('execute maps a thrown fetch to a network error record', async () => {
   const clock = createManualClock({ startAt: 0 });
   const executions = createExecutionStore({ clock });

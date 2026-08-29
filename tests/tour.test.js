@@ -83,6 +83,45 @@ test('runtime plays steps, updates selection, resolves targets, and emits events
   assert.deepEqual(resolved, ['[data-op-id="index.rebuild"]', '[data-panel-id="nav"]']);
 });
 
+test('next/prev/goTo are no-ops after finish()', async () => {
+  const bus = createRuntimeBus();
+  const events = [];
+  for (const kind of ['tour.started', 'tour.stepChanged', 'tour.finished']) {
+    bus.subscribe(kind, (event) => events.push([event.kind, event.step ? event.step.index : null]));
+  }
+  const overlayCalls = [];
+  const overlay = {
+    start: () => overlayCalls.push('start'),
+    renderStep: (info) => overlayCalls.push(['renderStep', info.index]),
+    finish: () => overlayCalls.push('finish'),
+  };
+  const runtime = createTourRuntime({
+    bus, overlay,
+    handlers: defaultRegistry(),
+    resolveElement: () => null,
+  });
+  const tour = {
+    id: 't', title: 'T',
+    steps: [
+      { id: 's1', title: 'one', commands: [] },
+      { id: 's2', title: 'two', commands: [] },
+    ],
+  };
+  const player = runtime.play(tour);
+  await player.finish();
+  const indexBefore = player.index;
+  await player.next();
+  await player.prev();
+  await player.goTo(0);
+  assert.equal(player.index, indexBefore, 'index unchanged after finish');
+  assert.deepEqual(events, [
+    ['tour.started', null],
+    ['tour.stepChanged', 0],
+    ['tour.finished', null],
+  ], 'no stepChanged after finish');
+  assert.deepEqual(overlayCalls, ['start', ['renderStep', 0], 'finish'], 'no renderStep after finish');
+});
+
 test('submitOperation delegates to the host instead of owning semantics', async () => {
   const submitted = [];
   const runtime = createTourRuntime({

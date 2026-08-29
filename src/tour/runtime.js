@@ -93,6 +93,7 @@ export function createTourRuntime(options = {}) {
     };
 
     async function enter(target) {
+      if (finished) return Promise.resolve();
       index = clamp(target, 0, steps.length - 1);
       const step = steps[index];
       let spotlight = null;
