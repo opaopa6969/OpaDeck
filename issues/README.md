@@ -25,3 +25,6 @@ commit, the source files, and the tests).
 - [ ] [ISSUE-008: Headless Browser Smoke-Test Harness](ISSUE-008-headless-browser-smoke-harness.md)
 - [ ] [ISSUE-013: Resolve EXTENSIONS.md Extension Validation Gap](ISSUE-013-resolve-extensions-validation-gap.md)
 - [ ] [ISSUE-015: Document Or Sanitize inlineSvg Renderer Markup Injection](ISSUE-015-inline-svg-markup-injection-contract.md)
+- [ ] [ISSUE-016: HTTP 304 Not Modified Is Recorded As An Error](ISSUE-016-http-304-recorded-as-error.md)
+- [ ] [ISSUE-017: Tour Emits stepChanged And Re-renders The Card After finish()](ISSUE-017-tour-step-changed-after-finish.md)
+- [ ] [ISSUE-018: DSL `timeoutMs` With A Non-Numeric Token Parses As NaN And Silently Disables The Timeout](ISSUE-018-dsl-timeoutms-nan-disables-timeout.md)

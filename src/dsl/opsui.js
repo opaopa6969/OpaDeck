@@ -350,7 +350,7 @@ class Parser {
           request.contentType = this.expect('string', 'a content-type string').value;
           break;
         case 'timeoutMs':
-          request.timeoutMs = Number(this.expectWord().value);
+          request.timeoutMs = this.expectNumber();
           break;
         case 'accept':
           request.accept = request.accept || [];
@@ -749,6 +749,15 @@ class Parser {
       return false;
     }
     throw parseError(`Expected true or false but found '${token.value}'.`, token.line, token.column);
+  }
+
+  expectNumber() {
+    const token = this.expectWord();
+    const value = Number(token.value);
+    if (!Number.isFinite(value)) {
+      throw parseError(`Expected a number but found '${token.value}'.`, token.line, token.column);
+    }
+    return value;
   }
 
   parseScalar() {

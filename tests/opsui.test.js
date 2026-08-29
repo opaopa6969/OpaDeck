@@ -124,3 +124,33 @@ test('requires a valid version token', () => {
   assert.equal(problems[0].code, 'dsl.parse.error');
   assert.match(problems[0].message, /version like 'v1'/);
 });
+
+test('rejects a non-numeric timeoutMs token as a parse error', () => {
+  const source = `app Demo v1 {
+  group g {
+    operation op {
+      request { method GET url "/x" timeoutMs abc }
+      field f : text in query {}
+    }
+  }
+}`;
+  const { app, problems } = compileOpsui(source);
+  assert.equal(app, null);
+  assert.equal(problems[0].code, 'dsl.parse.error');
+  assert.match(problems[0].message, /Expected a number but found 'abc'/);
+});
+
+test('accepts a valid numeric timeoutMs', () => {
+  const source = `app Demo v1 {
+  group g {
+    operation op {
+      request { method GET url "/x" timeoutMs 500 }
+      field f : text in query {}
+    }
+  }
+}`;
+  const { app, problems } = compileOpsui(source);
+  assert.ok(app);
+  assert.equal(problems.length, 0);
+  assert.equal(app.groups[0].operations[0].request.timeoutMs, 500);
+});

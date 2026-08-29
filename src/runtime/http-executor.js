@@ -73,7 +73,7 @@ export function createHttpExecutor(options = {}) {
       });
       cleanup(cancelTimer, detachSignal);
       const snapshot = await readResponse(response, startedAt, operation);
-      if (response.ok) {
+      if (response.ok || response.status === 304) {
         return executions.succeed(snapshot);
       }
       return executions.fail(snapshot, {
