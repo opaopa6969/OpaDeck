@@ -63,15 +63,44 @@ test('jsonLines renders one row per NDJSON line', () => {
   assert.equal(el.querySelectorAll('.opa-jsonl-line').length, 3);
 });
 
-test('inlineSvg injects svg markup and matches image/svg+xml', () => {
+test('inlineSvg injects sanitized svg markup and matches image/svg+xml', () => {
   const document = createFakeDocument();
   const renderer = resultRenderer('inlineSvg');
   assert.equal(renderer.canRender({ contentType: 'image/svg+xml' }), true);
   const el = renderer.render({ document, bodyText: '<svg><circle r="2"/></svg>' });
   assert.match(el.className, /opa-inline-svg/);
-  assert.match(el.innerHTML, /<svg/);
+  const svg = el.querySelector('svg');
+  assert.ok(svg, 'an <svg> element is appended');
+  assert.equal(svg.querySelectorAll('circle').length, 1);
   const empty = renderer.render({ document, bodyText: 'not svg' });
   assert.match(empty.className, /opa-inline-svg-empty/);
+});
+
+test('inlineSvg strips script elements and on* event attributes (XSS hardening)', () => {
+  const document = createFakeDocument();
+  const renderer = resultRenderer('inlineSvg');
+  const payload = '<svg onload="alert(1)"><script>alert(2)</script><circle onclick="alert(3)" r="2"/></svg>';
+  const el = renderer.render({ document, bodyText: payload });
+  assert.match(el.className, /opa-inline-svg/);
+  const svg = el.querySelector('svg');
+  assert.ok(svg, 'svg present after sanitization');
+  assert.equal(svg.querySelectorAll('script').length, 0, 'script removed');
+  assert.equal(svg.hasAttribute('onload'), false, 'svg onload removed');
+  const circle = svg.querySelector('circle');
+  assert.ok(circle, 'circle preserved');
+  assert.equal(circle.hasAttribute('onclick'), false, 'circle onclick removed');
+  assert.equal(circle.getAttribute('r'), '2', 'benign attribute preserved');
+});
+
+test('inlineSvg strips foreignObject (HTML injection vector)', () => {
+  const document = createFakeDocument();
+  const renderer = resultRenderer('inlineSvg');
+  const payload = '<svg><foreignObject><body><script>alert(1)</script></body></foreignObject><circle r="2"/></svg>';
+  const el = renderer.render({ document, bodyText: payload });
+  const svg = el.querySelector('svg');
+  assert.equal(svg.querySelectorAll('foreignObject').length, 0, 'foreignObject removed');
+  assert.equal(svg.querySelectorAll('script').length, 0, 'script inside foreignObject removed');
+  assert.equal(svg.querySelectorAll('circle').length, 1, 'circle preserved');
 });
 
 test('timeSeries draws a polyline and point markers from rows', () => {

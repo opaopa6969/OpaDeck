@@ -60,7 +60,9 @@ export function createBuiltinResultRenderers() {
     },
     {
       // Inline SVG returned by the operation, injected as markup. Auto-matches
-      // image/svg+xml.
+      // image/svg+xml. The markup is parsed and sanitized (script elements and
+      // inline event-handler attributes are stripped) before insertion, so an
+      // untrusted response cannot run script via the SVG payload.
       id: 'inlineSvg',
       canRender: (ctx) => ctx && typeof ctx.contentType === 'string' && ctx.contentType.includes('svg'),
       render: (ctx) => {
@@ -69,7 +71,15 @@ export function createBuiltinResultRenderers() {
         if (!markup.includes('<svg')) {
           return h(doc, 'div', { class: 'opa-inline-svg opa-inline-svg-empty', text: 'No SVG content.' });
         }
-        return h(doc, 'div', { class: 'opa-inline-svg', innerHTML: markup });
+        const container = h(doc, 'div', { class: 'opa-inline-svg' });
+        const svgEl = parseAndSanitizeSvg(doc, markup);
+        if (svgEl) {
+          container.appendChild(svgEl);
+        } else {
+          container.classList.add('opa-inline-svg-empty');
+          container.textContent = 'No SVG content.';
+        }
+        return container;
       },
     },
   ];
@@ -183,5 +193,71 @@ function tryParse(text) {
     return JSON.parse(text);
   } catch {
     return text;
+  }
+}
+
+const UNSAFE_SVG_TAGS = new Set(['script', 'foreignobject']);
+const EVENT_ATTR = /^on/i;
+
+function parseAndSanitizeSvg(doc, markup) {
+  const parser = typeof doc.parseFromHTML === 'function'
+    ? { parseFromString: doc.parseFromHTML }
+    : (typeof globalThis.DOMParser === 'function' ? new globalThis.DOMParser() : null);
+  if (!parser) {
+    return null;
+  }
+  let parsedDoc;
+  try {
+    parsedDoc = parser.parseFromString(markup, 'image/svg+xml');
+  } catch {
+    return null;
+  }
+  const svg = parsedDoc && typeof parsedDoc.querySelector === 'function'
+    ? parsedDoc.querySelector('svg')
+    : null;
+  if (!svg) {
+    return null;
+  }
+  sanitizeSvgElement(svg);
+  return svg;
+}
+
+function sanitizeSvgElement(el) {
+  const remove = [];
+  for (const child of (el.children || [])) {
+    if (UNSAFE_SVG_TAGS.has(String(child.tagName || '').toLowerCase())) {
+      remove.push(child);
+    } else {
+      sanitizeSvgElement(child);
+    }
+  }
+  for (const node of remove) {
+    if (node.parentNode) {
+      node.parentNode.removeChild(node);
+    }
+  }
+  const attrNames = [];
+  const attrs = el.attributes;
+  if (attrs) {
+    if (typeof attrs[Symbol.iterator] === 'function') {
+      for (const entry of attrs) {
+        const name = Array.isArray(entry) ? entry[0] : (entry && entry.name);
+        if (typeof name === 'string') {
+          attrNames.push(name);
+        }
+      }
+    } else if (typeof attrs.length === 'number') {
+      for (let i = 0; i < attrs.length; i += 1) {
+        const attr = attrs[i];
+        if (attr && typeof attr.name === 'string') {
+          attrNames.push(attr.name);
+        }
+      }
+    }
+  }
+  for (const name of attrNames) {
+    if (EVENT_ATTR.test(name)) {
+      el.removeAttribute(name);
+    }
   }
 }
