@@ -34,6 +34,7 @@ test('Japan base map projects geographic coordinates inside the viewport', () =>
   const baseMap = createJapanBaseMap();
   assert.equal(baseMap.regions.length, 47);
   const tokyo = baseMap.project(139.69, 35.68);
+  assert.ok(Number.isNaN(baseMap.project(NaN, 35.68).x), 'canonical clamp01 propagates NaN');
   assert.ok(tokyo.x >= 0 && tokyo.x <= baseMap.width);
   assert.ok(tokyo.y >= 0 && tokyo.y <= baseMap.height);
   assert.equal(baseMap.regionByCode(13).name, 'Tokyo');

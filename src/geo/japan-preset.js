@@ -10,6 +10,7 @@
 // the standard JIS prefecture order). createJapanBaseMap() turns it into the
 // generic base-map shape the renderer consumes: positioned regions plus a
 // project(lng, lat) for geographic point/line layers.
+import { clamp01 } from 'kazu';
 
 export const JAPAN_TILE_GRID = [
   { code: 1, name: 'Hokkaido', col: 11, row: 0 },
@@ -119,13 +120,4 @@ export function createJapanBaseMap(options = {}) {
 
 function padCode(code) {
   return String(code).padStart(2, '0');
-}
-
-function clamp01(value) {
-  if (!Number.isFinite(value)) {
-    return 0;
-  }
-  if (value < 0) return 0;
-  if (value > 1) return 1;
-  return value;
 }
