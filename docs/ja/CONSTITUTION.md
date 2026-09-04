@@ -85,3 +85,21 @@ OpaDeck は次になってはいけない。
 - public-site builder
 - full low-code platform
 
+### 8. 可搬性は契約である
+
+`src/**` は配布物である。**package manager も import map も bundler も無い環境**で
+そのまま解決できなければならない。他人の repository に vendoring された状態でも、
+ブラウザへ直接配信された状態でも動くこと。
+
+具体的には、`src/**` の module specifier は**すべて相対**である。
+
+- bare specifier（`'kazu'` / `'lodash'`）は、利用者が持っていない resolver を要求する
+- `node:` 組み込みはブラウザに存在しない
+- 絶対パスや URL は、利用者の配信レイアウトを固定してしまう
+
+共有ユーティリティは `tests/` `scripts/` `showcase/` で使ってよい。
+これらはこの repository の外へ出ない。`src/**` には入れない。
+
+原則 4 のとおり、これは信用ではなく validation で守る。
+`tests/portability.test.js` が `src/` 全体を走査し、相対でない specifier があれば失敗する。
+

@@ -89,3 +89,21 @@ OpaDeck should not become:
 - a public-site builder
 - a full low-code platform
 
+### 8. Portability is a contract
+
+`src/**` is the distributable. It must resolve with **no package manager, no
+import map, and no bundler** — vendored into someone else's repository, or
+served straight to a browser.
+
+Concretely, every module specifier under `src/**` is **relative**:
+
+- a bare specifier (`'kazu'`, `'lodash'`) needs a resolver the consumer does not have
+- a `node:` builtin does not exist in a browser
+- an absolute path or URL pins the consumer's hosting layout
+
+Shared utilities are welcome in `tests/`, `scripts/` and `showcase/` — those
+never leave this repository. They do not belong in `src/**`.
+
+Per principle 4, this is validated rather than trusted: `tests/portability.test.js`
+walks the whole `src/` tree and fails on any non-relative specifier.
+

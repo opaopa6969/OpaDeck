@@ -13,8 +13,5 @@
   },
   "devDependencies": {
     "playwright": "^1.55.1"
-  },
-  "dependencies": {
-    "kazu": "git+https://github.com/opaopa6969/kazu.git#v1.0.0"
   }
 }
