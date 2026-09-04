@@ -53,14 +53,12 @@ export function findModuleSpecifiers(source) {
       continue;
     }
     if (ch === '"' || ch === "'" || ch === '`') {
-      const { value, end } = readQuoted(source, index);
-      // A template literal is never a static specifier: `import(`./${x}.js`)`
-      // resolves at runtime and is out of scope for a static guard.
-      if (ch !== '`') {
-        const keyword = specifierKeyword(code);
-        if (keyword) {
-          found.push({ specifier: value, keyword });
-        }
+      const { value, end, hasInterpolation } = readQuoted(source, index);
+      const keyword = specifierKeyword(code);
+      // A template literal with `${...}` resolves at runtime and is out of
+      // scope for a static guard. A plain `` `./x.js` `` is still static.
+      if (keyword && (ch !== '`' || !hasInterpolation)) {
+        found.push({ specifier: value, keyword });
       }
       index = end;
       code += '\u0000';
@@ -88,12 +86,16 @@ function readQuoted(source, start) {
   const quote = source[start];
   let index = start + 1;
   let value = '';
+  let hasInterpolation = false;
   while (index < source.length) {
     const ch = source[index];
     if (ch === '\\') {
       value += source[index + 1] || '';
       index += 2;
       continue;
+    }
+    if (quote === '`' && ch === '$' && source[index + 1] === '{') {
+      hasInterpolation = true;
     }
     if (ch === quote) {
       index += 1;
@@ -102,7 +104,7 @@ function readQuoted(source, start) {
     value += ch;
     index += 1;
   }
-  return { value, end: index };
+  return { value, end: index, hasInterpolation };
 }
 
 // A '/' opens a regex only where an expression may begin. After a value
@@ -188,10 +190,11 @@ test('relative specifiers in every import form are recognized and allowed', () =
     `export { d } from './d.js';`,
     `export * from '../e.js';`,
     `const f = await import('./f.js');`,
+    'const g = await import(`./g.js`);',
   ].join('\n');
   const found = findModuleSpecifiers(source);
   assert.deepEqual(found.map((entry) => entry.specifier), [
-    './a.js', '../b/b.js', './c.js', './side-effect.js', './d.js', '../e.js', './f.js',
+    './a.js', '../b/b.js', './c.js', './side-effect.js', './d.js', '../e.js', './f.js', './g.js',
   ]);
   assert.ok(found.every((entry) => RELATIVE.test(entry.specifier)));
 });
@@ -223,9 +226,11 @@ test('every unresolvable specifier form is detected', () => {
     [`import 'some-side-effect-package';`, 'some-side-effect-package'],
     [`export * from 'lodash';`, 'lodash'],
     [`const c = await import('chalk');`, 'chalk'],
+    ['const c = await import(`kazu`);', 'kazu'],
     [`import fs from 'node:fs';`, 'node:fs'],
     [`import x from '/abs/path.js';`, '/abs/path.js'],
     [`import x from 'https://cdn.test/x.js';`, 'https://cdn.test/x.js'],
+    ['const x = await import(`https://cdn.test/x.js`);', 'https://cdn.test/x.js'],
   ];
   for (const [source, expected] of cases) {
     const found = findModuleSpecifiers(source);
