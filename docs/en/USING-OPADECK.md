@@ -11,6 +11,10 @@ OpaDeck を自分のアプリに組み込む人向けの実践ガイド。各部
 
 `src/*` をそのまま import する（npm 未公開なので vendoring か submodule）。
 
+`src/**` の module specifier はすべて相対なので、コピーしただけで解決できる。
+import map も bundler も package manager も要らない（憲法 原則 8「可搬性は契約である」。
+`tests/portability.test.js` がこれを強制する）。
+
 ```js
 import {
   createRuntimeBus, createSystemClock, createScheduler,

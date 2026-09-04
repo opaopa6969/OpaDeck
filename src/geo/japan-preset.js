@@ -10,7 +10,6 @@
 // the standard JIS prefecture order). createJapanBaseMap() turns it into the
 // generic base-map shape the renderer consumes: positioned regions plus a
 // project(lng, lat) for geographic point/line layers.
-import { clamp01 } from 'kazu';
 
 export const JAPAN_TILE_GRID = [
   { code: 1, name: 'Hokkaido', col: 11, row: 0 },
@@ -120,4 +119,12 @@ export function createJapanBaseMap(options = {}) {
 
 function padCode(code) {
   return String(code).padStart(2, '0');
+}
+
+// Inlined on purpose: src/** is the distributable and must resolve with no
+// package manager and no import map (CONSTITUTION principle 8, enforced by
+// tests/portability.test.js). Behavior matches the canonical clamp01 — a
+// non-finite input propagates as NaN rather than snapping to an edge.
+function clamp01(value) {
+  return value < 0 ? 0 : value > 1 ? 1 : value;
 }

@@ -37,6 +37,11 @@ The runtime is plain ESM and the tests use the built-in Node test runner, so no
 dependency install is needed. **Node.js >= 18 is required** (the `node --test`
 flag does not exist on older releases).
 
+That claim is enforced rather than trusted: `src/**` may only use relative
+module specifiers, and `tests/portability.test.js` fails on any bare package,
+`node:` builtin, absolute path or URL that appears there. See
+[Constitution principle 8](docs/en/CONSTITUTION.md).
+
 ```bash
 node --version   # must print v18 or newer
 npm test         # runs `node --test`
