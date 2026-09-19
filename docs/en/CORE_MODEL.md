@@ -237,9 +237,11 @@ it reads `options.accumulate === false` to cap the visible result list at the
 latest record instead of showing full run history. This is a host/renderer
 convention, not a core concept — `options` stays opaque to `src/core/`, and
 `{ accumulate: false }` is only meaningful because `resultStack` chooses to
-interpret it that way. There is currently no `.opsui` DSL syntax for setting
-it; it is set directly on the `ResultViewDefinition` when building an `App`
-programmatically (see `tests/workbench.test.js`).
+interpret it that way. It can be set either directly on the
+`ResultViewDefinition` when building an `App` programmatically (see
+`tests/workbench.test.js`), or via `.opsui` DSL sugar:
+`result { renderer jsonFoldable options { accumulate false } }` (see
+`tests/opsui.test.js`, `docs/en/DSL.md`).
 
 Independent of `options`, `createWorkbench` also wires a per-record dismiss
 control: each result card calls `ctx.onDismiss(record.id)`, which the host

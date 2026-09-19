@@ -231,9 +231,11 @@ edge であって、core の一部ではない(`EXTENSIONS.md` 参照)。
 `options.accumulate === false` を読み取り、実行履歴を全件表示する代わりに最新
 1 件だけに絞る。これは core の概念ではなく host/renderer 側の慣習であり、
 `options` は `src/core/` にとって不透明なまま — `{ accumulate: false }` が
-意味を持つのは `resultStack` がそう解釈すると決めているから。現時点では
-これを設定する `.opsui` DSL 構文は無い。`App` を programmatically に組み立てる
-ときに `ResultViewDefinition` へ直接設定する(`tests/workbench.test.js` 参照)。
+意味を持つのは `resultStack` がそう解釈すると決めているから。`App` を
+programmatically に組み立てるときに `ResultViewDefinition` へ直接設定するか
+(`tests/workbench.test.js` 参照)、`.opsui` DSL の糖衣構文
+`result { renderer jsonFoldable options { accumulate false } }` で設定できる
+(`tests/opsui.test.js`、`docs/ja/DSL.md` 参照)。
 
 `options` とは独立に、`createWorkbench` は record ごとの dismiss 操作も配線している。
 各結果カードは `ctx.onDismiss(record.id)` を呼び、host はそれを execution store
