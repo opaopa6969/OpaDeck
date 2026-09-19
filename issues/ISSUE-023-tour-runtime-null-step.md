@@ -52,8 +52,7 @@ was needed.
 
 ## Status
 
-Implemented by `fix/issue-59-tour-runtime-null-step`; GitHub #59 closes when
-the reviewed PR merges.
+Done on `main` (GitHub #59, merged via PR #60, resolving commit `a724715`).
 
 - `src/tour/runtime.js`: `enter()` now coerces a non-plain-object step to `{}`
   via `isPlainObject` before reading `.commands` / `.id` / `.title` /

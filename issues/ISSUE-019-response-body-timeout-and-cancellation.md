@@ -28,8 +28,7 @@ runtime, or public API change is needed.
 
 ## Status
 
-Implemented by `fix/issue-31-response-body-timeout`; GitHub #31 closes when the
-reviewed PR merges.
+Done on `main` (GitHub #31, merged via PR #33, resolving commit `33cbf1e`).
 
 - `src/runtime/http-executor.js` defers timeout/cancellation cleanup until the
   response body terminal path completes.

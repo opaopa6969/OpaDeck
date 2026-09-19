@@ -89,8 +89,8 @@ resolution is acceptable; the goal is consistency.
 
 ## Status
 
-Implemented on `fix/issue-13-capability-validation` (GitHub #23); independent
-Judge acceptance and Finalizer merge are pending. Took Option A for the checks and Option B for their
+Done on `main` (GitHub #23, merged via PR #25, resolving commit `2bf18b9`).
+Took Option A for the checks and Option B for their
 placement: the four checks are implemented, but in the registry layer as the
 companion validator `validateCapabilities(app, registries)`
 (`src/registry/validate-capabilities.js`), not in the core. `validateApp` and

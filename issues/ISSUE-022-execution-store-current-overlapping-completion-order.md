@@ -35,8 +35,7 @@ dependency, runtime API surface, or data migration is needed.
 
 ## Status
 
-Implemented by `fix/issue-57-execution-store-current-overlap`; GitHub #57
-closes when the reviewed PR merges.
+Done on `main` (GitHub #57, merged via PR #58, resolving commit `77add65`).
 
 - `src/runtime/execution-store.js`: `currentRecord()` now derives "current"
   from the insertion-ordered `running` Map (the last surviving entry) instead
