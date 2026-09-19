@@ -31,7 +31,7 @@ export function createBuiltinResultRenderers() {
           h(doc, 'tr', {}, columns.map((col) => h(doc, 'th', { text: col }))),
         ]);
         const body = h(doc, 'tbody', {}, rows.map((row) => h(doc, 'tr', {},
-          columns.map((col) => h(doc, 'td', { text: formatCell(row[col]) })))));
+          columns.map((col) => h(doc, 'td', { text: formatCell(row && typeof row === 'object' ? row[col] : undefined) })))));
         return h(doc, 'table', { class: 'opa-table' }, [head, body]);
       },
     },
