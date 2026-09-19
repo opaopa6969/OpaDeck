@@ -14,6 +14,9 @@ import { createProblem } from '../core/problem.js';
 //   - on a successful parse, `app` is the normalized AppDefinition and
 //     `problems` are the structured reference diagnostics from
 //     validateApp (so DSL diagnostics align with ProblemEntry).
+//   - options.registries is forwarded to validateApp so the compile step can
+//     also flag unknown renderer ids / adapter kinds / unsupported field types
+//     against the caller's registries; options.validate === false skips all.
 
 const FIELD_TYPES = new Set(['text', 'textarea', 'checkbox', 'select', 'hidden']);
 const FIELD_PLACEMENTS = new Set(['query', 'body', 'header', 'path', 'state']);
@@ -38,7 +41,7 @@ export function compileOpsui(source, options = {}) {
   if (options.validate === false) {
     return { app: normalized, problems };
   }
-  problems.push(...validateApp(normalized));
+  problems.push(...validateApp(normalized, { registries: options.registries }));
   return { app: normalized, problems };
 }
 

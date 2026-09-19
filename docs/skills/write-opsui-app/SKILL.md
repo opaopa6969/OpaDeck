@@ -304,6 +304,10 @@ console.log('OK', app.id, app.title);
 
 - 構文エラー: `app` は null、`problems` に `dsl.parse.error` 1件
 - 参照エラー: `app` は正規化済み、`problems` に検出された問題が入る
+- `compileOpsui(source, { registries })` のように registry を渡すと、追加で
+  `result.renderer.unknown` / `panel.renderer.unknown` / `dataSource.kind.unknown` /
+  `field.type.unsupported` も検出する(`renderer auto` は unknown 扱いにならない)。
+  渡さなければ従来どおり構造検証のみ
 
 ### 8.2 AppDefinition を個別にバリデートする
 

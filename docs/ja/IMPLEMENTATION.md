@@ -27,6 +27,7 @@ companion validator + 合成:
 - [src/layout/validate-layout.js](../../src/layout/validate-layout.js) — `validateLayouts`
 - [src/help/validate-help.js](../../src/help/validate-help.js) — `validateHelp`(help + tour)
 - [src/geo/validate-geo.js](../../src/geo/validate-geo.js) — `validateGeoScene`
+- [src/registry/validate-capabilities.js](../../src/registry/validate-capabilities.js) — `validateCapabilities`(registry capability check。EXTENSIONS.md 参照)
 - [src/validate.js](../../src/validate.js) — `validateApp` が core + companion を合成
 
 `validateAppDefinition`(core)が検証するもの:
@@ -41,6 +42,9 @@ companion validator + 合成:
 - layout/panel binding 不正(layout companion)
 - help target / tour target 不正(help companion)
 - geoScene options/layers の最低要件(geo companion)
+- unknown `result.renderer` / panel renderer id / datasource adapter kind、
+  対応 renderer の無い field type — 呼び出し側が `{ registries }` を渡したときだけ
+  (capability companion。`compileOpsui` はこの option を転送する)
 
 ## 2. Runtime service
 
