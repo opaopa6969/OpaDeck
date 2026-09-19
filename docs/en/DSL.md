@@ -78,7 +78,8 @@ app VacantOps v1 {
 
 A `layout` block holds a single root render node built from these primitives:
 
-- `split <id> <row|column> { ... }` — exactly two child nodes; optional `sizes <a> <b>`
+- `split <id> <row|column> { ... }` — exactly two child nodes; optional
+  `sizes <a> <b>` with two finite numeric weights
 - `stack <id> { ... }` — N child nodes; optional `gap <none|sm|md|lg>`
 - `tabs <id> { ... }` — panel children; optional `defaultTab <panelId>`
 - `panel <id> <renderer> { bind <binding> ... }`
@@ -160,4 +161,3 @@ Tour step commands: `focus operation <id>`, `focus field <opId> <fieldId>`,
 `operations` are the source of truth.  
 `layout` changes presentation only.  
 `help` changes comprehension only.
-

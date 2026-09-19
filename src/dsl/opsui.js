@@ -507,7 +507,7 @@ class Parser {
     while (this.peek().type !== 'rbrace') {
       if (this.peek().type === 'word' && this.peek().value === 'sizes') {
         this.next();
-        node.sizes = [Number(this.expectWord().value), Number(this.expectWord().value)];
+        node.sizes = [this.expectNumber(), this.expectNumber()];
       } else {
         node.children.push(this.parseNode());
       }
