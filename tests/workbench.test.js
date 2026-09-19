@@ -116,3 +116,65 @@ test('filter narrows the nav', () => {
   assert.equal(items.length, 1);
   assert.equal(items[0].textContent, 'Reload cache');
 });
+
+test('dismissing a result removes it from the execution store history', async () => {
+  const { detail, results, workbench } = setup();
+  workbench.selectOperation('core.search');
+  detail.querySelector('.opa-submit').click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(results.querySelectorAll('.opa-result-card').length, 1);
+  results.querySelector('.opa-result-dismiss').click();
+  assert.equal(results.querySelectorAll('.opa-result-card').length, 0);
+  assert.equal(results.querySelector('.opa-empty').textContent, 'No results yet.');
+});
+
+test('result { options { accumulate false } } caps the stack at the latest record', async () => {
+  const { doc, nav, detail, results } = (() => {
+    const doc = createFakeDocument();
+    const nav = doc.createElement('div');
+    const detail = doc.createElement('div');
+    const results = doc.createElement('div');
+    return { doc, nav, detail, results };
+  })();
+  const clock = createManualClock();
+  const bus = createRuntimeBus();
+  const executions = createExecutionStore({ bus, clock });
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    headers: { get: (name) => (name.toLowerCase() === 'content-type' ? 'application/json' : null) },
+    async text() { return JSON.stringify({ ok: true }); },
+  });
+  const executor = createHttpExecutor({ executions, clock, fetch: fetchImpl });
+  const app = {
+    id: 'demo',
+    version: 1,
+    groups: [{
+      id: 'core',
+      label: 'Core',
+      operations: [{
+        id: 'ping',
+        groupId: 'core',
+        title: 'Ping',
+        request: { method: 'GET', url: '/api/ping' },
+        fields: [],
+        result: { renderer: 'jsonFoldable', options: { accumulate: false } },
+      }],
+    }],
+  };
+  const workbench = createWorkbench({ document: doc, app, mounts: { nav, detail, results }, executor, executions });
+  workbench.selectOperation('core.ping');
+
+  detail.querySelector('.opa-submit').click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  detail.querySelector('.opa-submit').click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(executions.history().length, 2, 'both runs are retained in history');
+  assert.equal(results.querySelectorAll('.opa-result-card').length, 1, 'accumulate:false shows only the latest');
+});
