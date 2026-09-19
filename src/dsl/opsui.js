@@ -94,8 +94,18 @@ function tokenize(source) {
           throw parseError('Unterminated string literal.', startLine, startColumn);
         }
         if (source[i] === '\\' && i + 1 < n) {
+          const escapeLine = line;
+          const escapeColumn = column;
           const escaped = source[i + 1];
-          value += escaped === 'n' ? '\n' : escaped === 't' ? '\t' : escaped;
+          if (escaped === 'n') {
+            value += '\n';
+          } else if (escaped === 't') {
+            value += '\t';
+          } else if (escaped === '\\' || escaped === '"') {
+            value += escaped;
+          } else {
+            throw parseError(`Unknown string escape '\\${escaped}'.`, escapeLine, escapeColumn);
+          }
           advance(2);
           continue;
         }
