@@ -25,7 +25,11 @@ import { buildRequestPreview, operationFqid } from '../runtime/request-builder.j
 //   optionsFor        - (field) => options[] for select fields
 //   baseUrl           - base URL for the live request preview
 //   initFieldState    - (operation) => state object (field defaults if absent)
-//   renderResult      - (record, { document }) => Element (default card if absent)
+//   renderResult      - (record, { document, onDismiss }) => Element (default card if
+//                       absent). Call onDismiss(record.id) to remove a record from the
+//                       execution store's history (dismiss control on the default card).
+//                       `result { options { accumulate false } }` on the selected
+//                       operation caps the visible stack at the latest record.
 //   filterMatch       - (operation, queryLower) => boolean (title/summary if absent)
 //   onSelect          - (fqid, operation, group) => void
 //   onRun             - (record, operation) => void (after execute resolves)
@@ -166,15 +170,23 @@ export function createWorkbench(options) {
   function renderResults() {
     const current = executions.current();
     const history = executions.history();
-    const records = current ? [current, ...history] : history;
+    const all = current ? [current, ...history] : history;
+    // `result { options { accumulate false } }` (see ISSUE-010 follow-up #2) caps
+    // the visible stack at the latest record instead of the full history.
+    const limit = resultLimitFor(currentOperation);
+    const records = typeof limit === 'number' ? all.slice(0, Math.max(0, limit)) : all;
     clear(mounts.results);
     if (records.length === 0) {
       mounts.results.appendChild(h(doc, 'p', { class: 'opa-empty', text: 'No results yet.' }));
       return;
     }
     for (const record of records) {
-      mounts.results.appendChild(renderResult(record, { document: doc }));
+      mounts.results.appendChild(renderResult(record, { document: doc, onDismiss: dismissResult }));
     }
+  }
+
+  function dismissResult(id) {
+    executions.remove(id);
   }
 
   function setFilter(text) {
@@ -199,13 +211,22 @@ export function createWorkbench(options) {
     destroy: () => { if (typeof unsubscribe === 'function') unsubscribe(); },
   };
 
-  function defaultRenderResult(record) {
+  function defaultRenderResult(record, ctx = {}) {
     const status = record.response ? record.response.status : '';
     const card = h(doc, 'article', { class: `opa-result-card opa-result-${record.status}` }, [
       h(doc, 'header', { class: 'opa-result-head' }, [
         h(doc, 'span', { class: `opa-badge opa-badge-${record.status}`, text: record.status }),
         h(doc, 'span', { class: 'opa-result-op', text: record.operationFqid }),
         status !== '' ? h(doc, 'span', { class: 'opa-result-status', text: `HTTP ${status}` }) : null,
+        typeof ctx.onDismiss === 'function'
+          ? h(doc, 'button', {
+            type: 'button',
+            class: 'opa-result-dismiss',
+            title: 'Dismiss',
+            text: '×',
+            on: { click: () => ctx.onDismiss(record.id) },
+          })
+          : null,
       ]),
     ]);
     if (record.response) {
@@ -226,6 +247,11 @@ function defaultInitFieldState(operation) {
     }
   }
   return state;
+}
+
+function resultLimitFor(operation) {
+  const resultOptions = operation && operation.result && operation.result.options;
+  return resultOptions && resultOptions.accumulate === false ? 1 : undefined;
 }
 
 function defaultFilterMatch(operation, queryLower) {

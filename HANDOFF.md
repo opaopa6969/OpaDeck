@@ -48,7 +48,7 @@ work has landed as small `fix/issue-N-*` PRs merged individually (see
 
 ## Verification status
 
-- `npm test` (`node --test`): **149 tests passing**, 0 failing.
+- `npm test` (`node --test`): **151 tests passing**, 0 failing.
 - Showcase served over HTTP and the static module graph loads (200s).
 - Browser interaction is covered by a manual smoke-test checklist in
   `docs/en/IMPLEMENTATION.md` plus an automated headless smoke harness
@@ -56,9 +56,12 @@ work has landed as small `fix/issue-N-*` PRs merged individually (see
 
 ## Recommended next steps
 
-1. Wire `execution-store.remove` / `resultStack` `limit` into
-   `showcase/app.js` per `issues/ISSUE-010-*.md` follow-up #2
-   (`options { accumulate false }` convention).
+1. ~~Wire `execution-store.remove` / result `limit` into the host~~ — done:
+   `src/app/workbench.js` now supports a per-result dismiss control
+   (`executions.remove(id)`) and honors `result { options { accumulate false } }`
+   to cap the visible stack at 1. See `issues/ISSUE-010-*.md` follow-up #2.
+   `showcase/app.js` still has its own hand-rolled result panel (it does not use
+   `createWorkbench`); left as-is since that was out of this change's scope.
 2. Decide whether to port the remaining vacant-service groups in
    `examples/vacant-ops.opsui` (follow-up #3 in the same issue) or treat the
    5-group sample as sufficient coverage.

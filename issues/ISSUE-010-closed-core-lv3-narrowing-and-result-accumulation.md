@@ -97,10 +97,15 @@ work.
 ## Follow-ups / handoff
 
 1. ~~commit / push の判断~~ — resolved: landed as `7253774` on `main`.
-2. **showcase/host への配線**: `resultStack` と execution-store は dismiss / limit を
-   サポート済みだが、host ループ(showcase/app.js)はまだ `store.remove` / `limit` を呼んでいない。
-   `result { renderer ... }` に `options { accumulate false }` 規約を設け、host が accumulate=false →
-   limit 1 に写すのが自然(`ResultViewDefinition.options` は core から見て不透明なのでここに置ける)。
+2. ~~**host への配線**~~ — resolved: `src/app/workbench.js` の `renderResults()` が
+   `result { options { accumulate false } }` を読んで `resultLimitFor()` で表示件数を
+   最新 1 件に絞り、各結果カードに dismiss(×)ボタンを追加して `executions.remove(id)`
+   (execution-store の `remove`)を呼ぶようになった。`createWorkbench` が実際の
+   3 面ホスト実装であり(`showcase/app.js` は手組みのデモページで `createWorkbench` を
+   使っていない別物)、テスト付きで配線できる箇所としてこちらを採用した。
+   `tests/workbench.test.js` に dismiss と accumulate:false の回帰テストを追加。
+   `showcase/app.js` 自体は `createWorkbench` を使うよう書き換えていない(この follow-up の
+   スコープ外; 既存のデモ挙動を変えないための判断)。
 3. **vacant port の残り 9 group**(company / verify / index 残 / indexPointer / zip / building 残 /
    ziptraining / microProfile 残 / mail / poisonPill / etc)を移植して完全 round-trip を確認するか、
    代表 5 group で十分とするかを決める。
