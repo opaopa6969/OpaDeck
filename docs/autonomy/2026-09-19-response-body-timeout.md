@@ -63,3 +63,25 @@ executorテスト方式と同じであり、分岐・timer・signal cleanupを�
 `gh run list`、`git log -8 --oneline`。
 
 Builderモデル: Codex (GPT-5系)。記録時点の反復: 1/3。
+
+## 継続記録（handoff #32 からの再開 / job fan-mu8celz6-5h0）
+
+前 job（fan-mu8burgf-69b, Builder モデル Codex）は commit `6eb2821` を
+ローカルに作った時点で中断し、push も PR も行っていなかった。handoff issue
+#32 の指示どおり、重複実装はせずこのブランチをそのまま引き継いだ。
+
+- 観測: `gh pr list` は open PR 0件、`origin` に
+  `fix/issue-31-response-body-timeout` は存在せず、predecessor worktree
+  `/home/opa/work/.wt/OpaDeck/autonomy-fan-mu8burgf-69b` は clean
+  （未コミットの他人の作業なし）。CI（`.github/workflows`）は依然として無い。
+- 再検証: Node v20.20.0 で `npm test` → 119 passed / 0 failed / 0 skipped。
+  `git diff --check origin/main...HEAD` は警告なし。
+- 追加した判断: `issues/README.md` で ISSUE-019 を「Open — follow-up work」
+  から Done へ移した。この PR の merge が実装を `main` に載せるため、
+  台帳を同じ PR で同期しておかないと commit `2c38524`（ISSUE-008/015/016/
+  017/018 の Status 同期）と同じ台帳ドリフトを繰り返す。docs のみの変更で
+  可逆。
+- 未変更: `src/runtime/http-executor.js` とテストは predecessor の実装の
+  まま。ここで再設計はしていない。
+
+反転方法は上記と同じ（merge commit の `git revert -m 1`、#31 を reopen）。
