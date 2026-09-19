@@ -36,13 +36,14 @@ export function createExecutionStore(options = {}) {
     throw new TypeError('Execution store requires a clock with now().');
   }
   const historyLimit = Math.max(1, Number(options.historyLimit) || 50);
-  let currentRecord = null;
+  const running = new Map();
+  let lastBegunId = null;
   let history = [];
   let sequence = 0;
 
   return {
     current() {
-      return cloneRecord(currentRecord);
+      return cloneRecord(currentRecord());
     },
 
     history() {
@@ -61,25 +62,26 @@ export function createExecutionStore(options = {}) {
         response: undefined,
         problems: normalizeProblems(input.problems),
       };
-      currentRecord = record;
+      running.set(record.id, record);
+      lastBegunId = record.id;
       emit('execution.started', { record: cloneRecord(record) });
       return cloneRecord(record);
     },
 
-    succeed(response, options2 = {}) {
-      return finalize('success', response, options2.problems);
+    succeed(id, response, options2 = {}) {
+      return finalize(id, 'success', response, options2.problems);
     },
 
-    fail(response, options2 = {}) {
-      return finalize('error', response, options2.problems);
+    fail(id, response, options2 = {}) {
+      return finalize(id, 'error', response, options2.problems);
     },
 
-    cancel(problems) {
-      return finalize('cancelled', null, problems);
+    cancel(id, problems) {
+      return finalize(id, 'cancelled', null, problems);
     },
 
-    timeout(problems) {
-      return finalize('timeout', null, problems);
+    timeout(id, problems) {
+      return finalize(id, 'timeout', null, problems);
     },
 
     remove(id) {
@@ -106,24 +108,31 @@ export function createExecutionStore(options = {}) {
     },
   };
 
-  function finalize(status, response, problems) {
-    if (!currentRecord) {
+  function currentRecord() {
+    return running.get(lastBegunId) || null;
+  }
+
+  function finalize(id, status, response, problems) {
+    const record = running.get(id);
+    if (!record) {
+      // Unknown or already-terminated execution: a no-op rather than
+      // silently overwriting whichever record happens to be "current".
       return null;
     }
+    running.delete(id);
     const finishedAt = clock.now();
     const snapshot = response ? createResponseSnapshot({
       ...response,
-      durationMs: response.durationMs != null ? response.durationMs : finishedAt - currentRecord.startedAt,
+      durationMs: response.durationMs != null ? response.durationMs : finishedAt - record.startedAt,
       receivedAt: response.receivedAt != null ? response.receivedAt : finishedAt,
     }, clock) : undefined;
     const finalized = {
-      ...currentRecord,
+      ...record,
       finishedAt,
       status,
       response: snapshot,
-      problems: currentRecord.problems.concat(normalizeProblems(problems)),
+      problems: record.problems.concat(normalizeProblems(problems)),
     };
-    currentRecord = null;
     history = [finalized, ...history].slice(0, historyLimit);
     emit(`execution.${status}`, { record: cloneRecord(finalized) });
     return cloneRecord(finalized);
@@ -132,7 +141,7 @@ export function createExecutionStore(options = {}) {
   function emit(kind, event) {
     for (const listener of [...listeners]) {
       listener({
-        current: cloneRecord(currentRecord),
+        current: cloneRecord(currentRecord()),
         history: history.map(cloneRecord),
       }, { kind, ...event });
     }
