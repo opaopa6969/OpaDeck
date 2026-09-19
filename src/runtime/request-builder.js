@@ -48,9 +48,16 @@ function buildUrl(request, fields, fieldState, options) {
   }
   const queryString = query.toString();
   if (queryString) {
-    url += (url.includes('?') ? '&' : '?') + queryString;
+    url = appendQueryBeforeFragment(url, queryString);
   }
   return url;
+}
+
+function appendQueryBeforeFragment(url, queryString) {
+  const fragmentIndex = url.indexOf('#');
+  const requestUrl = fragmentIndex === -1 ? url : url.slice(0, fragmentIndex);
+  const fragment = fragmentIndex === -1 ? '' : url.slice(fragmentIndex);
+  return requestUrl + (requestUrl.includes('?') ? '&' : '?') + queryString + fragment;
 }
 
 function substitutePathParams(url, fields, fieldState) {

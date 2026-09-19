@@ -74,7 +74,9 @@ Implemented:
   / `form` (urlencoded) / **`multipart`** (fixed boundary so preview/curl/execute
   stay byte-identical). Checkbox fields serialize with HTML semantics via
   **`field.checkedValue` / `uncheckedValue`** (unchecked omits the param instead
-  of leaking the literal `"true"`/`"false"`).
+  of leaking the literal `"true"`/`"false"`). Generated query parameters are
+  inserted before a URL fragment, preserving both static query parameters and
+  the fragment in the operator-visible preview.
 - **HTTP executor** (ISSUE-001): runs the preview through an injectable `fetch`
   with AbortController-based timeout (driven by the clock) and external cancel,
   keeping both active until the response body or NDJSON stream is fully read,

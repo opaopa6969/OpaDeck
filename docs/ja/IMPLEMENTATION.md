@@ -67,7 +67,8 @@ file:
 - `after`, `every`, `frame` を持つ scheduler
 - selection store
 - execution store with history
-- request preview（query/path/header、raw/form/multipart body、curl）
+- request preview（query/path/header、raw/form/multipart body、curl）。動的 query は
+  URL fragment より前へ挿入し、既存の静的 query と fragment の両方を保持する
 - injectable fetch による HTTP 実行、本文/NDJSON stream 読了まで有効な
   timeout/cancel、execution.* event
 - NDJSON/JSON Lines の `onProgress` による逐次受信
