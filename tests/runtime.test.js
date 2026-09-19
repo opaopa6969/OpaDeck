@@ -160,6 +160,22 @@ test('execution store tracks two overlapping executions independently', () => {
   ]);
 });
 
+test('current() keeps reporting an earlier still-running execution after a later one finishes', () => {
+  const clock = createManualClock({ startAt: 0 });
+  const store = createExecutionStore({ clock });
+
+  const a = store.begin({ operationFqid: 'g.a', requestPreview: { method: 'GET', url: '/a' } });
+  const b = store.begin({ operationFqid: 'g.b', requestPreview: { method: 'GET', url: '/b' } });
+  assert.equal(store.current().id, b.id);
+
+  // B was started after A but finishes first; A is still running.
+  store.succeed(b.id, { status: 200 });
+  assert.equal(store.current().id, a.id);
+
+  store.succeed(a.id, { status: 200 });
+  assert.equal(store.current(), null);
+});
+
 test('finalizing an unknown or already-terminated execution id is a no-op', () => {
   const clock = createManualClock({ startAt: 0 });
   const store = createExecutionStore({ clock });
