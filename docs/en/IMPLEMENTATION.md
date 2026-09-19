@@ -71,8 +71,12 @@ Implemented:
 - **request builder** (ISSUE-001): serializes an operation + field state into a
   `RequestPreviewModel` (query serialization, path params, header fields,
   raw/form bodies, content-type inference, curl). Body kinds: `none` / `rawField`
-  / `form` (urlencoded) / **`multipart`** (fixed boundary so preview/curl/execute
-  stay byte-identical). Checkbox fields serialize with HTML semantics via
+  / `form` (urlencoded) / **`multipart`** (deterministic boundary so
+  preview/curl/execute stay byte-identical; the default `MULTIPART_BOUNDARY` is
+  extended with a numeric suffix whenever a serialized name or value contains
+  it, so an operator-typed value cannot forge extra form-data parts, and `"`,
+  CR, and LF in a field name are percent-encoded inside `Content-Disposition`).
+  Checkbox fields serialize with HTML semantics via
   **`field.checkedValue` / `uncheckedValue`** (unchecked omits the param instead
   of leaking the literal `"true"`/`"false"`). Generated query parameters are
   inserted before a URL fragment, preserving both static query parameters and

@@ -188,3 +188,75 @@ test('buildCurl shells-quotes single quotes in url, headers, and body and omits 
   // Non-GET method emits -X <METHOD>.
   assert.match(buildCurl({ method: 'POST', url: '/x', headers: {}, bodyText: '' }), /^curl -X POST '/);
 });
+
+// Splits a multipart body the way a server would: on the boundary advertised in
+// the content-type header. Returns [{ name, value }] so a test can assert on the
+// parts the server actually sees rather than on substrings of the raw body.
+function parseMultipart(preview) {
+  const boundary = /boundary=(.*)$/.exec(preview.headers['content-type'])[1];
+  return preview.bodyText
+    .split(`--${boundary}`)
+    .slice(1, -1)
+    .map((chunk) => {
+      // Only the first blank line separates the part headers from the part body;
+      // the body itself may legitimately contain blank lines.
+      const rest = chunk.replace(/^\r\n/, '');
+      const split = rest.indexOf('\r\n\r\n');
+      return {
+        name: /name="([^"]*)"/.exec(rest.slice(0, split))[1],
+        value: rest.slice(split + 4).replace(/\r\n$/, ''),
+      };
+    });
+}
+
+const uploadOperation = {
+  id: 'upload',
+  groupId: 'building',
+  request: { method: 'POST', url: '/api/upload', body: { kind: 'multipart' } },
+  fields: [
+    { id: 'note', name: 'note', type: 'text', placement: 'body' },
+    { id: 'role', name: 'role', type: 'text', placement: 'body', defaultValue: 'user' },
+  ],
+};
+
+test('multipart escalates the boundary when a value contains the default one', () => {
+  const forged = `x\r\n--${MULTIPART_BOUNDARY}\r\n`
+    + 'Content-Disposition: form-data; name="role"\r\n\r\nadmin';
+  const preview = buildRequestPreview(uploadOperation, { note: forged });
+
+  const boundary = /boundary=(.*)$/.exec(preview.headers['content-type'])[1];
+  assert.notEqual(boundary, MULTIPART_BOUNDARY, 'a colliding value must not reuse the default boundary');
+  assert.ok(!forged.includes(boundary), 'the chosen boundary must not occur inside the value');
+
+  assert.deepEqual(parseMultipart(preview), [
+    { name: 'note', value: forged },
+    { name: 'role', value: 'user' },
+  ], 'the forged part stays inside the note value instead of becoming its own part');
+});
+
+test('multipart keeps escalating past an already-taken candidate boundary', () => {
+  const preview = buildRequestPreview(uploadOperation, {
+    note: `${MULTIPART_BOUNDARY} and ${MULTIPART_BOUNDARY}1`,
+  });
+
+  assert.equal(
+    preview.headers['content-type'],
+    `multipart/form-data; boundary=${MULTIPART_BOUNDARY}2`,
+  );
+  assert.deepEqual(parseMultipart(preview).map((part) => part.name), ['note', 'role']);
+});
+
+test('multipart percent-encodes quotes and line breaks in a field name', () => {
+  const preview = buildRequestPreview({
+    id: 'upload',
+    groupId: 'building',
+    request: { method: 'POST', url: '/api/upload', body: { kind: 'multipart' } },
+    fields: [{ id: 'odd', name: 'a"b\r\nContent-Type: text/html', type: 'text', placement: 'body' }],
+  }, { odd: 'v' });
+
+  assert.match(
+    preview.bodyText,
+    /Content-Disposition: form-data; name="a%22b%0D%0AContent-Type: text\/html"\r\n\r\nv\r\n/,
+  );
+  assert.equal(preview.bodyText.split('\r\n\r\n').length, 2, 'the name never starts a second header block');
+});

@@ -98,11 +98,12 @@ function buildHeadersAndBody(request, method, fields, fieldState) {
 
   let bodyText;
   if (!BODYLESS_METHODS.has(method)) {
-    bodyText = buildBody(request, fields, fieldState);
+    const bodyContext = {};
+    bodyText = buildBody(request, fields, fieldState, bodyContext);
     if (bodyText != null && request.contentType) {
       headers['content-type'] = request.contentType;
     } else if (bodyText != null && !hasHeader(headers, 'content-type')) {
-      const inferred = inferContentType(request);
+      const inferred = inferContentType(request, bodyContext);
       if (inferred) {
         headers['content-type'] = inferred;
       }
@@ -112,7 +113,7 @@ function buildHeadersAndBody(request, method, fields, fieldState) {
   return { headers, bodyText };
 }
 
-function buildBody(request, fields, fieldState) {
+function buildBody(request, fields, fieldState, context = {}) {
   const body = request.body;
   if (!body || body.kind === 'none') {
     return undefined;
@@ -143,28 +144,31 @@ function buildBody(request, fields, fieldState) {
     return form.toString();
   }
   if (body.kind === 'multipart') {
-    return buildMultipart(fields, fieldState);
+    return buildMultipart(fields, fieldState, context);
   }
   return undefined;
 }
 
-function inferContentType(request) {
+function inferContentType(request, context = {}) {
   const body = request.body;
   if (body && body.kind === 'form') {
     return 'application/x-www-form-urlencoded';
   }
   if (body && body.kind === 'multipart') {
-    return `multipart/form-data; boundary=${MULTIPART_BOUNDARY}`;
+    return `multipart/form-data; boundary=${context.boundary || MULTIPART_BOUNDARY}`;
   }
   return undefined;
 }
 
-// A fixed boundary keeps buildRequestPreview pure (no Date/Math.random) and lets
-// the preview, curl, and the executed request stay byte-for-byte identical.
+// The default boundary keeps buildRequestPreview pure (no Date/Math.random) and
+// lets the preview, curl, and the executed request stay byte-for-byte identical.
+// It is a published constant, so a value the operator types can contain it; when
+// that happens selectMultipartBoundary derives a longer boundary instead. The
+// derivation only reads the serialized entries, so it stays deterministic.
 export const MULTIPART_BOUNDARY = '----OpaDeckFormBoundary7MA4YWxkTrZu0gW';
 
-function buildMultipart(fields, fieldState) {
-  const parts = [];
+function buildMultipart(fields, fieldState, context = {}) {
+  const entries = [];
   for (const field of fields) {
     if (field.placement !== 'body') {
       continue;
@@ -178,15 +182,43 @@ function buildMultipart(fields, fieldState) {
       if (item == null) {
         continue;
       }
-      parts.push(
-        `--${MULTIPART_BOUNDARY}\r\n`
-        + `Content-Disposition: form-data; name="${serializedKey(field)}"\r\n\r\n`
-        + `${String(item)}\r\n`,
-      );
+      entries.push({ name: escapeFieldName(serializedKey(field)), value: String(item) });
     }
   }
-  parts.push(`--${MULTIPART_BOUNDARY}--\r\n`);
+
+  const boundary = selectMultipartBoundary(entries);
+  context.boundary = boundary;
+
+  const parts = entries.map((entry) => (
+    `--${boundary}\r\n`
+    + `Content-Disposition: form-data; name="${entry.name}"\r\n\r\n`
+    + `${entry.value}\r\n`
+  ));
+  parts.push(`--${boundary}--\r\n`);
   return parts.join('');
+}
+
+// A boundary that appears inside a part lets that part close itself and start a
+// new one, so an operator-supplied value could forge extra form-data parts.
+// Walk a deterministic candidate sequence until one is absent from every entry.
+function selectMultipartBoundary(entries) {
+  let boundary = MULTIPART_BOUNDARY;
+  let suffix = 0;
+  while (entries.some((entry) => entry.name.includes(boundary) || entry.value.includes(boundary))) {
+    suffix += 1;
+    boundary = `${MULTIPART_BOUNDARY}${suffix}`;
+  }
+  return boundary;
+}
+
+// Content-Disposition carries the name as a quoted string on its own header
+// line, so a quote or a line break in the name would break out of it. Percent-
+// encode exactly those three characters, the way browsers serialize form names.
+function escapeFieldName(name) {
+  return String(name)
+    .replace(/\r/g, '%0D')
+    .replace(/\n/g, '%0A')
+    .replace(/"/g, '%22');
 }
 
 export function buildCurl(preview) {
