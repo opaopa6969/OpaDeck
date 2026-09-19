@@ -1,4 +1,5 @@
 import { createProblem } from '../core/problem.js';
+import { isPlainObject } from '../core/ids.js';
 import { traverseRenderNode } from '../layout/validate-layout.js';
 
 // Optional companion layer: capability validation against the typed registries.
@@ -25,6 +26,9 @@ export function validateCapabilities(app, registries = {}) {
 
   const groups = Array.isArray(app.groups) ? app.groups : [];
   for (const group of groups) {
+    if (!isPlainObject(group)) {
+      continue;
+    }
     const operations = Array.isArray(group.operations) ? group.operations : [];
     for (const operation of operations) {
       validateResultRenderer(operation, registries.resultRenderers, problems);

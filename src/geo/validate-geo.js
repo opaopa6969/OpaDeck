@@ -1,5 +1,5 @@
 import { createProblem } from '../core/problem.js';
-import { fqid } from '../core/ids.js';
+import { fqid, isPlainObject } from '../core/ids.js';
 
 // Optional companion check for the geoScene result renderer. The closed core
 // treats result.renderer as an opaque registry id; this edge renderer owns the
@@ -8,7 +8,13 @@ import { fqid } from '../core/ids.js';
 export function validateGeoScene(app) {
   const problems = [];
   for (const group of app.groups || []) {
+    if (!isPlainObject(group)) {
+      continue;
+    }
     for (const operation of group.operations || []) {
+      if (!isPlainObject(operation)) {
+        continue;
+      }
       validateGeoSceneResult(operation, group.id, problems);
     }
   }

@@ -1,5 +1,5 @@
 import { createProblem } from '../core/problem.js';
-import { collectOperationIds, pushDuplicateProblems } from '../core/ids.js';
+import { collectOperationIds, isPlainObject, pushDuplicateProblems } from '../core/ids.js';
 
 // Optional companion layer: layout (presentation tree) validation. Not part of
 // the closed core. Composed in by validateApp() when an app carries layouts.
@@ -13,7 +13,7 @@ export function validateLayouts(app) {
 
   pushDuplicateProblems('layout', layouts, problems);
 
-  const groupIds = new Set(app.groups.map((group) => group.id));
+  const groupIds = new Set(app.groups.filter(isPlainObject).map((group) => group.id));
   const operationIds = collectOperationIds(app);
   const panelIds = new Set();
 

@@ -1,5 +1,5 @@
 import { createProblem } from '../core/problem.js';
-import { fqid, fieldKey, pushDuplicateProblems } from '../core/ids.js';
+import { fqid, fieldKey, isPlainObject, pushDuplicateProblems } from '../core/ids.js';
 import { traverseRenderNode } from '../layout/validate-layout.js';
 
 // Optional companion layer: help + tour validation. Not part of the closed
@@ -101,14 +101,23 @@ function validateTourCommand(command, refs, problems, tourId, stepId) {
 function collectReferences(app) {
   const operations = new Set();
   const fields = new Set();
-  const groups = new Set(app.groups.map((group) => group.id));
+  const groups = new Set(app.groups.filter(isPlainObject).map((group) => group.id));
   const panels = new Set();
 
   for (const group of app.groups) {
+    if (!isPlainObject(group)) {
+      continue;
+    }
     for (const operation of group.operations) {
+      if (!isPlainObject(operation)) {
+        continue;
+      }
       operations.add(operation.id);
       operations.add(fqid(group.id, operation.id));
       for (const field of operation.fields) {
+        if (!isPlainObject(field)) {
+          continue;
+        }
         fields.add(fieldKey(operation.id, field.id));
         fields.add(fieldKey(fqid(group.id, operation.id), field.id));
       }
