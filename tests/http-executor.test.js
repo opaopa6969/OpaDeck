@@ -94,6 +94,12 @@ test('execute records success and publishes execution events', async () => {
     bus.subscribe(k, (event) => kinds.push(event.kind));
   }
   const calls = [];
+  const cancelListeners = new Set();
+  const signal = {
+    aborted: false,
+    addEventListener: (kind, listener) => cancelListeners.add(listener),
+    removeEventListener: (kind, listener) => cancelListeners.delete(listener),
+  };
   const executor = createHttpExecutor({
     executions,
     clock,
@@ -104,13 +110,15 @@ test('execute records success and publishes execution events', async () => {
     },
   });
 
-  const record = await executor.execute(POST_OP, { payload: '{"ok":true}' });
+  const record = await executor.execute(POST_OP, { payload: '{"ok":true}' }, { signal });
   assert.equal(record.status, 'success');
   assert.equal(record.response.status, 200);
   assert.deepEqual(record.response.bodyJson, { ok: true });
   assert.equal(calls[0].init.method, 'POST');
   assert.equal(calls[0].init.body, '{"ok":true}');
   assert.deepEqual(kinds, ['execution.started', 'execution.success']);
+  assert.equal(clock.pendingCount(), 0, 'successful body read releases the timeout timer');
+  assert.equal(cancelListeners.size, 0, 'successful body read detaches the caller signal');
 });
 
 test('execute maps a non-2xx response to an error record with a snapshot', async () => {
@@ -186,6 +194,37 @@ test('execute maps a timeout via the clock to a timeout record', async () => {
   assert.ok(record.problems.some((p) => p.code === 'execution.timeout'));
 });
 
+test('timeout remains active while the response body is being read', async () => {
+  const clock = createManualClock({ startAt: 0 });
+  const executions = createExecutionStore({ clock });
+  let bodyStartedResolve;
+  const bodyStarted = new Promise((resolve) => { bodyStartedResolve = resolve; });
+  const executor = createHttpExecutor({
+    executions,
+    clock,
+    AbortController: globalThis.AbortController,
+    fetch: async (url, init) => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: { get: () => 'text/plain' },
+      text: () => new Promise((_resolve, reject) => {
+        bodyStartedResolve();
+        init.signal.addEventListener('abort', () => reject(new Error('body read aborted')), { once: true });
+      }),
+    }),
+  });
+
+  const promise = executor.execute(POST_OP, { payload: 'x' }); // timeoutMs: 50
+  await bodyStarted;
+  clock.advanceBy(50);
+
+  const record = await promise;
+  assert.equal(record.status, 'timeout');
+  assert.equal(clock.pendingCount(), 0);
+  assert.ok(record.problems.some((p) => p.code === 'execution.timeout'));
+});
+
 test('execute maps an external cancel signal to a cancelled record', async () => {
   const clock = createManualClock({ startAt: 0 });
   const executions = createExecutionStore({ clock });
@@ -204,6 +243,37 @@ test('execute maps an external cancel signal to a cancelled record', async () =>
   });
   const promise = executor.execute(GET_OP, { q: 'x' }, { signal: controller.signal });
   controller.abort();
+  const record = await promise;
+  assert.equal(record.status, 'cancelled');
+  assert.ok(record.problems.some((p) => p.code === 'execution.cancelled'));
+});
+
+test('external cancellation remains active while the response body is being read', async () => {
+  const clock = createManualClock({ startAt: 0 });
+  const executions = createExecutionStore({ clock });
+  const controller = new globalThis.AbortController();
+  let bodyStartedResolve;
+  const bodyStarted = new Promise((resolve) => { bodyStartedResolve = resolve; });
+  const executor = createHttpExecutor({
+    executions,
+    clock,
+    AbortController: globalThis.AbortController,
+    fetch: async (url, init) => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: { get: () => 'text/plain' },
+      text: () => new Promise((_resolve, reject) => {
+        bodyStartedResolve();
+        init.signal.addEventListener('abort', () => reject(new Error('body read aborted')), { once: true });
+      }),
+    }),
+  });
+
+  const promise = executor.execute(GET_OP, { q: 'x' }, { signal: controller.signal });
+  await bodyStarted;
+  controller.abort();
+
   const record = await promise;
   assert.equal(record.status, 'cancelled');
   assert.ok(record.problems.some((p) => p.code === 'execution.cancelled'));

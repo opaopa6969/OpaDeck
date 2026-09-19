@@ -68,7 +68,8 @@ file:
 - selection store
 - execution store with history
 - request preview（query/path/header、raw/form/multipart body、curl）
-- injectable fetch による HTTP 実行、timeout/cancel、execution.* event
+- injectable fetch による HTTP 実行、本文/NDJSON stream 読了まで有効な
+  timeout/cancel、execution.* event
 - NDJSON/JSON Lines の `onProgress` による逐次受信
 - runtime service の集約
 

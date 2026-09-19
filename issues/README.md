@@ -28,4 +28,4 @@ commit, the source files, and the tests).
 
 ## Open — follow-up work
 
-None currently tracked.
+- [ ] [ISSUE-019: Keep Timeout And Cancellation Active Through Response Body Reads](ISSUE-019-response-body-timeout-and-cancellation.md) (GitHub #31)

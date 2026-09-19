@@ -91,3 +91,39 @@ test('non-streaming responses ignore onProgress', async () => {
   assert.equal(progress.length, 0);
   assert.deepEqual(record.response.bodyJson, { ok: true });
 });
+
+test('timeout remains active while an NDJSON stream body is being read', async () => {
+  const clock = createManualClock({ startAt: 0 });
+  const executions = createExecutionStore({ clock });
+  let bodyStartedResolve;
+  const bodyStarted = new Promise((resolve) => { bodyStartedResolve = resolve; });
+  const fetchImpl = async (url, init) => ({
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    headers: { get: () => 'application/x-ndjson' },
+    body: {
+      getReader: () => ({
+        read: () => new Promise((_resolve, reject) => {
+          bodyStartedResolve();
+          init.signal.addEventListener('abort', () => reject(new Error('stream aborted')), { once: true });
+        }),
+      }),
+    },
+  });
+  const executor = createHttpExecutor({
+    executions,
+    clock,
+    AbortController: globalThis.AbortController,
+    fetch: fetchImpl,
+    onProgress: () => {},
+  });
+
+  const promise = executor.execute(NDJSON_OP, {}, { timeoutMs: 25 });
+  await bodyStarted;
+  clock.advanceBy(25);
+
+  const record = await promise;
+  assert.equal(record.status, 'timeout');
+  assert.ok(record.problems.some((p) => p.code === 'execution.timeout'));
+});

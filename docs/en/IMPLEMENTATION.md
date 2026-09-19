@@ -77,6 +77,7 @@ Implemented:
   of leaking the literal `"true"`/`"false"`).
 - **HTTP executor** (ISSUE-001): runs the preview through an injectable `fetch`
   with AbortController-based timeout (driven by the clock) and external cancel,
+  keeping both active until the response body or NDJSON stream is fully read,
   mapping outcomes onto the execution store (success / error / timeout /
   cancelled) and publishing the `execution.*` bus events. An optional
   **`onProgress`** hook reads NDJSON/JSON Lines responses incrementally via
