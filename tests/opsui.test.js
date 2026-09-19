@@ -154,3 +154,18 @@ test('accepts a valid numeric timeoutMs', () => {
   assert.equal(problems.length, 0);
   assert.equal(app.groups[0].operations[0].request.timeoutMs, 500);
 });
+
+test('string literals keep \\n, \\t, \\\\, and \\" escapes', () => {
+  const source = 'app Demo v1 {\n  title "line1\\nline2\\ttab \\\\ \\"quoted\\""\n}';
+  const { app, problems } = compileOpsui(source, { validate: false });
+  assert.equal(problems.length, 0, JSON.stringify(problems, null, 2));
+  assert.equal(app.title, 'line1\nline2\ttab \\ "quoted"');
+});
+
+test('an unknown string escape is a located parse error, not silent data loss', () => {
+  const { app, problems } = compileOpsui('app Demo v1 {\n  title "C:\\Users\\alice"\n}');
+  assert.equal(app, null);
+  assert.equal(problems[0].code, 'dsl.parse.error');
+  assert.match(problems[0].message, /Unknown string escape '\\U'/);
+  assert.match(problems[0].detail, /line 2/);
+});
