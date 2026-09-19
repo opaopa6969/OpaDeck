@@ -24,24 +24,51 @@ function validateHelpEntries(help, refs, problems) {
     return;
   }
   pushDuplicateProblems('help-entry', help.entries, problems);
-  for (const entry of help.entries) {
+  help.entries.forEach((entry, entryIndex) => {
+    if (!isPlainObject(entry)) {
+      problems.push(createProblem(
+        'help-entry.invalid',
+        'error',
+        `Help entry at index ${entryIndex} must be an object.`,
+        { target: { kind: 'help-entry', entryIndex } }
+      ));
+      return;
+    }
     validateHelpTarget(entry.target, refs, problems, entry.id);
-  }
+  });
 }
 
 function validateTours(help, refs, problems) {
   const tours = Array.isArray(help.tours) ? help.tours : [];
   pushDuplicateProblems('tour', tours, problems);
-  for (const tour of tours) {
+  tours.forEach((tour, tourIndex) => {
+    if (!isPlainObject(tour)) {
+      problems.push(createProblem(
+        'tour.invalid',
+        'error',
+        `Tour at index ${tourIndex} must be an object.`,
+        { target: { kind: 'tour', tourIndex } }
+      ));
+      return;
+    }
     const steps = Array.isArray(tour.steps) ? tour.steps : [];
     pushDuplicateProblems('tour-step', steps, problems, tour.id);
-    for (const step of steps) {
+    steps.forEach((step, stepIndex) => {
+      if (!isPlainObject(step)) {
+        problems.push(createProblem(
+          'tour-step.invalid',
+          'error',
+          `Tour ${tour.id} step at index ${stepIndex} must be an object.`,
+          { target: { kind: 'tour-step', tourId: tour.id, stepIndex } }
+        ));
+        return;
+      }
       const commands = Array.isArray(step.commands) ? step.commands : [];
       for (const command of commands) {
         validateTourCommand(command, refs, problems, tour.id, step.id);
       }
-    }
-  }
+    });
+  });
 }
 
 function validateHelpTarget(target, refs, problems, entryId) {
@@ -124,6 +151,9 @@ function collectReferences(app) {
     }
   }
   for (const layout of Array.isArray(app.layouts) ? app.layouts : []) {
+    if (!isPlainObject(layout)) {
+      continue;
+    }
     traverseRenderNode(layout.root, (node) => {
       if (node && typeof node.id === 'string') {
         panels.add(node.id);

@@ -100,3 +100,78 @@ test('validateApp reports layout.invalid for a non-object layout and keeps valid
   assert.ok(codes.includes('layout.invalid'));
   assert.equal(problems.find((problem) => problem.code === 'layout.invalid').target.layoutIndex, 0);
 });
+
+// ISSUE-049: the same bug class as ISSUE-041/#48, but in the help/tour
+// companion validator (src/help/validate-help.js).
+
+test('validateApp reports help-entry.invalid for a non-object help entry and keeps validating siblings', () => {
+  const app = {
+    id: 'a',
+    groups: [{ id: 'g', operations: [] }],
+    help: {
+      entries: [null, { id: 'h', target: { kind: 'group', groupId: 'missing' } }],
+      tours: [],
+    },
+  };
+  assert.doesNotThrow(() => validateApp(app));
+  const problems = validateApp(app);
+  const codes = problems.map((problem) => problem.code);
+  assert.ok(codes.includes('help-entry.invalid'));
+  assert.equal(problems.find((problem) => problem.code === 'help-entry.invalid').target.entryIndex, 0);
+  assert.ok(codes.includes('help.target.invalid'));
+});
+
+test('validateApp reports tour.invalid for a non-object tour and keeps validating siblings', () => {
+  const app = {
+    id: 'a',
+    groups: [{ id: 'g', operations: [] }],
+    help: {
+      entries: [],
+      tours: [null, { id: 't', steps: [] }],
+    },
+  };
+  assert.doesNotThrow(() => validateApp(app));
+  const problems = validateApp(app);
+  const codes = problems.map((problem) => problem.code);
+  assert.ok(codes.includes('tour.invalid'));
+  assert.equal(problems.find((problem) => problem.code === 'tour.invalid').target.tourIndex, 0);
+});
+
+test('validateApp reports tour-step.invalid for a non-object tour step and keeps validating siblings', () => {
+  const app = {
+    id: 'a',
+    groups: [{ id: 'g', operations: [] }],
+    help: {
+      entries: [],
+      tours: [{
+        id: 't',
+        steps: [
+          null,
+          { id: 's', commands: [{ kind: 'focusOperation', operationId: 'missing' }] },
+        ],
+      }],
+    },
+  };
+  assert.doesNotThrow(() => validateApp(app));
+  const problems = validateApp(app);
+  const codes = problems.map((problem) => problem.code);
+  assert.ok(codes.includes('tour-step.invalid'));
+  const invalid = problems.find((problem) => problem.code === 'tour-step.invalid');
+  assert.equal(invalid.target.tourId, 't');
+  assert.equal(invalid.target.stepIndex, 0);
+  assert.ok(codes.includes('tour.command.operation.missing'));
+});
+
+test('validateApp never throws when a null layout is combined with a help block referencing panels', () => {
+  const app = {
+    id: 'a',
+    groups: [{ id: 'g', operations: [] }],
+    layouts: [null, { id: 'l', root: { kind: 'panel', id: 'p', renderer: 'groupNav', binding: { kind: 'group', groupId: 'g' } } }],
+    help: { entries: [{ id: 'h', target: { kind: 'panel', panelId: 'p' } }], tours: [] },
+  };
+  assert.doesNotThrow(() => validateApp(app));
+  const problems = validateApp(app);
+  const codes = problems.map((problem) => problem.code);
+  assert.ok(codes.includes('layout.invalid'));
+  assert.ok(!codes.includes('help.target.invalid'));
+});
