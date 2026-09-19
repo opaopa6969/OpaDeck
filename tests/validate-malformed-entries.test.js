@@ -84,3 +84,19 @@ test('validateApp with registries never throws for a non-object operation (capab
   };
   assert.doesNotThrow(() => validateApp(app, { registries }));
 });
+
+test('validateApp reports layout.invalid for a non-object layout and keeps validating the rest', () => {
+  const app = {
+    id: 'a',
+    groups: [{ id: 'g', operations: [] }],
+    layouts: [
+      null,
+      { id: 'l', root: { kind: 'panel', id: 'p', renderer: 'groupNav', binding: { kind: 'group', groupId: 'g' } } },
+    ],
+  };
+  assert.doesNotThrow(() => validateApp(app));
+  const problems = validateApp(app);
+  const codes = problems.map((problem) => problem.code);
+  assert.ok(codes.includes('layout.invalid'));
+  assert.equal(problems.find((problem) => problem.code === 'layout.invalid').target.layoutIndex, 0);
+});
