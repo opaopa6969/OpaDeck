@@ -1,6 +1,6 @@
 import { normalizeAppDefinition } from './normalize-app.js';
 import { createProblem, problemComparator } from './problem.js';
-import { fqid, hasField, hasById, pushDuplicateProblems } from './ids.js';
+import { fqid, hasField, hasById, isPlainObject, pushDuplicateProblems } from './ids.js';
 
 // Closed-core validation. This only knows about the semantic spine:
 // app / group / operation / request / field / datasource. Validation of the
@@ -23,9 +23,27 @@ function validateTopLevelIds(app, problems) {
 }
 
 function validateGroups(app, problems) {
-  for (const group of app.groups) {
+  app.groups.forEach((group, groupIndex) => {
+    if (!isPlainObject(group)) {
+      problems.push(createProblem(
+        'group.invalid',
+        'error',
+        `Group at index ${groupIndex} must be an object.`,
+        { target: { kind: 'group', groupIndex } }
+      ));
+      return;
+    }
     pushDuplicateProblems('operation', group.operations, problems, group.id);
-    for (const operation of group.operations) {
+    group.operations.forEach((operation, operationIndex) => {
+      if (!isPlainObject(operation)) {
+        problems.push(createProblem(
+          'operation.invalid',
+          'error',
+          `Operation at index ${operationIndex} in group ${group.id} must be an object.`,
+          { target: { kind: 'operation', groupId: group.id, operationIndex } }
+        ));
+        return;
+      }
       if (operation.groupId !== group.id) {
         problems.push(createProblem(
           'operation.groupId.mismatch',
@@ -35,10 +53,24 @@ function validateGroups(app, problems) {
         ));
       }
       pushDuplicateProblems('field', operation.fields, problems, fqid(group.id, operation.id));
+      validateFields(operation, group.id, problems);
       validateRequestBody(operation, group.id, problems);
       validateFieldSources(operation, group.id, app, problems);
+    });
+  });
+}
+
+function validateFields(operation, groupId, problems) {
+  operation.fields.forEach((field, fieldIndex) => {
+    if (!isPlainObject(field)) {
+      problems.push(createProblem(
+        'field.invalid',
+        'error',
+        `Field at index ${fieldIndex} in operation ${fqid(groupId, operation.id)} must be an object.`,
+        { target: { kind: 'field', operationId: operation.id, fieldIndex } }
+      ));
     }
-  }
+  });
 }
 
 function validateRequestBody(operation, groupId, problems) {
@@ -73,6 +105,9 @@ function validateRequestBody(operation, groupId, problems) {
 
 function validateFieldSources(operation, groupId, app, problems) {
   for (const field of operation.fields) {
+    if (!isPlainObject(field)) {
+      continue;
+    }
     const source = field.source;
     if (!source || typeof source !== 'object') {
       continue;

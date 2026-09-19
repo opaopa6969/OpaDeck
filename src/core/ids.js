@@ -14,12 +14,20 @@ export function fieldKey(operationId, fieldId) {
   return `${String(operationId)}::${String(fieldId)}`;
 }
 
+// A non-object entry (null, string, number, ...) in a groups / operations /
+// fields array is a malformed-but-non-throwing input shape: callers use this
+// guard to skip it and report a structured problem instead of dereferencing
+// it and crashing.
+export function isPlainObject(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export function hasField(operation, fieldId) {
-  return Array.isArray(operation.fields) && operation.fields.some((field) => field.id === fieldId);
+  return Array.isArray(operation.fields) && operation.fields.some((field) => isPlainObject(field) && field.id === fieldId);
 }
 
 export function hasById(items, id) {
-  return Array.isArray(items) && items.some((item) => item.id === id);
+  return Array.isArray(items) && items.some((item) => isPlainObject(item) && item.id === id);
 }
 
 export function capitalize(text) {
@@ -49,7 +57,13 @@ export function pushDuplicateProblems(kind, items, problems, scope) {
 export function collectOperations(app) {
   const map = new Map();
   for (const group of app.groups) {
+    if (!isPlainObject(group)) {
+      continue;
+    }
     for (const operation of group.operations) {
+      if (!isPlainObject(operation)) {
+        continue;
+      }
       map.set(fqid(group.id, operation.id), operation);
     }
   }
@@ -59,7 +73,13 @@ export function collectOperations(app) {
 export function collectOperationIds(app) {
   const ids = new Set();
   for (const group of app.groups) {
+    if (!isPlainObject(group)) {
+      continue;
+    }
     for (const operation of group.operations) {
+      if (!isPlainObject(operation)) {
+        continue;
+      }
       ids.add(fqid(group.id, operation.id));
       ids.add(operation.id);
     }
