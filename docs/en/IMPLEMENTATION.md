@@ -75,7 +75,10 @@ Implemented:
   preview/curl/execute stay byte-identical; the default `MULTIPART_BOUNDARY` is
   extended with a numeric suffix whenever a serialized name or value contains
   it, so an operator-typed value cannot forge extra form-data parts, and `"`,
-  CR, and LF in a field name are percent-encoded inside `Content-Disposition`).
+  CR, and LF in a field name are percent-encoded inside `Content-Disposition`.
+  A multipart `content-type` that the operation declares or an operator types
+  into a header field has its `boundary` parameter rewritten to the boundary the
+  body actually used, so header, preview body, and curl never disagree).
   Checkbox fields serialize with HTML semantics via
   **`field.checkedValue` / `uncheckedValue`** (unchecked omits the param instead
   of leaking the literal `"true"`/`"false"`). Generated query parameters are

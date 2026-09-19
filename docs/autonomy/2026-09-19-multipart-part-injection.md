@@ -104,3 +104,90 @@ import("./src/runtime/request-builder.js").then(({buildRequestPreview, MULTIPART
 参照し、第三者コード・素材・市場情報は利用していない。repo に LICENSE ファイルは
 なく、ライセンスは未確認。再現: `gh issue view 36`、`gh pr list`、
 `git log -8 --oneline`。
+
+---
+
+# Progressive Builder — 反復 2/3（Judge 差し戻しへの対応）
+
+記録日: 2026-09-19 (JST)。同一 PR #37 に追加 commit。新規 PR は立てない。
+
+## 観測事実
+
+- Judge が独立再現した抜け穴: 反復 1 は境界を `inferContentType` 経由でのみ
+  伝えていたため、`request.contentType` で multipart の content-type を明示した
+  operation では **header が既定境界を advertise したまま body だけ伸びた境界を
+  使う**。server は advertise された境界で分割するので、注入パート
+  (`role=admin`) が再び独立パートとして見える。同じ経路が header field で
+  content-type を入力した場合にも存在する（`buildHeadersAndBody` の
+  `request.contentType` 分岐と `hasHeader` ガードが `inferContentType` を迂回する）。
+- `issues/README.md` は ISSUE-021 を Open の `[ ]` に置いたままで、
+  `issues/ISSUE-021-*.md` の `## Status`（Implemented）および ISSUE-020 の
+  慣行（同一 commit で Done に `[x]`）と矛盾していた。
+
+## 仮説・選択理由
+
+境界は body 側が唯一の真実（衝突回避のため伸ばすのは body 直列化だけ）。
+よって header 側を後から body に合わせる。採った案は
+`forceMultipartBoundary(headers, boundary)` で、**content-type の media type が
+`multipart/` のときだけ** 既存の `boundary` パラメータを除去して実際の境界を
+付け直す。
+
+- 明示された content-type 自体（media type や `charset` などの他パラメータ）は
+  保持する。operator の宣言を尊重しつつ、server が分割に使う値だけ正す。
+- `multipart/` 以外の content-type には触れない。宣言と body 種別の不一致は
+  本 issue の範囲外で、勝手に境界を足す方が驚きが大きい。
+- `boundary` が未指定の `multipart/form-data` には付け足す（従来は server が
+  parse 不能だった。可逆な改善）。
+- 代案「明示 content-type を無視して常に infer する」は operator の宣言を
+  黙って捨てるため不採用。
+
+## 実施内容
+
+- `src/runtime/request-builder.js`: `forceMultipartBoundary` を追加し、
+  multipart body を作った場合は `request.contentType` / header field / 推論の
+  どの経路でも advertise される境界を body の境界へ揃える。
+- `tests/request-builder.test.js`: 回帰テスト 4 件を追加。
+  (1) operation が multipart content-type を宣言していても注入パートが
+  server から見えないこと、(2) header field で宣言した場合も同じで、他の
+  パラメータ（`charset`）が残り content-type header が重複しないこと、
+  (3) `boundary` 無しの `multipart/form-data` に境界が付くこと、
+  (4) 非 multipart の宣言 content-type は不変であること。
+  テスト側の境界読み取りも、パラメータ順・引用符・header 名の大小に依存しない
+  `multipartBoundary()` に置き換えた。
+- `issues/README.md`: ISSUE-021 を Done の `[x]` へ移動（Open は `_None._`）。
+- 英日 IMPLEMENTATION と ISSUE-021 の `## Status` に本契約を追記。
+
+## 検証結果・再現手順
+
+```bash
+npm test   # 127 passed / 0 failed / 0 skipped （反復 1 は 123）
+git diff --stat origin/main -- package.json package-lock.json   # 出力なし＝依存追加なし
+```
+
+Judge の再現ケース（`request.contentType` 明示）を修正後コードで実行:
+
+```bash
+node --input-type=module -e "
+import { buildRequestPreview, MULTIPART_BOUNDARY } from './src/index.js';
+const op = { id:'u', groupId:'b', request:{ method:'POST', url:'/api/upload',
+  contentType: \`multipart/form-data; boundary=\${MULTIPART_BOUNDARY}\`, body:{kind:'multipart'} },
+  fields:[{id:'note',name:'note',type:'text',placement:'body'},
+          {id:'role',name:'role',type:'text',placement:'body',defaultValue:'user'}] };
+const forged = 'x\r\n--' + MULTIPART_BOUNDARY + '\r\nContent-Disposition: form-data; name=\"role\"\r\n\r\nadmin';
+const p = buildRequestPreview(op, { note: forged });
+const b = /boundary=(.*)\$/.exec(p.headers['content-type'])[1];
+console.log(p.headers['content-type']);
+console.log(p.bodyText.split('--'+b).slice(1,-1).map(c=>/name=\"([^\"]*)\"/.exec(c)[1]));
+"
+# => multipart/form-data; boundary=----OpaDeckFormBoundary7MA4YWxkTrZu0gW1
+# => [ 'note', 'role' ]   （注入された role=admin は note の値の内側に留まる）
+```
+
+## 次の判断・残る不確実性
+
+- codex 由来の #38〜#42 は本 PR に混ぜない。独立した小さく可逆な単位として
+  次反復以降に扱う。
+- 残る不確実性: 実 parser ではなくテスト内 parser（advertise された境界で分割）
+  での検証である点は反復 1 から変わらない。
+- merge と #36 close は Judge の accept 後に Finalizer のみが行う。反転方法は
+  反復 1 と同じ（merge commit の `git revert -m 1`、#36 reopen）。

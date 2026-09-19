@@ -108,9 +108,30 @@ function buildHeadersAndBody(request, method, fields, fieldState) {
         headers['content-type'] = inferred;
       }
     }
+    if (bodyText != null && bodyContext.boundary) {
+      forceMultipartBoundary(headers, bodyContext.boundary);
+    }
   }
 
   return { headers, bodyText };
+}
+
+// A multipart content-type declared on the operation (request.contentType) or
+// typed into a header field advertises its own boundary, which is not the one
+// buildMultipart had to escalate to. A server splits on the advertised boundary,
+// so leaving them out of sync re-opens the injection the escalation closes:
+// rewrite the parameter so header, body, and curl always name the same boundary.
+function forceMultipartBoundary(headers, boundary) {
+  const key = Object.keys(headers).find((name) => name.toLowerCase() === 'content-type');
+  if (!key) {
+    return;
+  }
+  const value = String(headers[key]);
+  if (!/^\s*multipart\//i.test(value)) {
+    return;
+  }
+  const withoutBoundary = value.replace(/;\s*boundary\s*=\s*(?:"[^"]*"|[^;]+)/gi, '');
+  headers[key] = `${withoutBoundary.trim().replace(/;\s*$/, '')}; boundary=${boundary}`;
 }
 
 function buildBody(request, fields, fieldState, context = {}) {

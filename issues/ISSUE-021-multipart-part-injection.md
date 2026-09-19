@@ -40,7 +40,11 @@ the reviewed PR merges.
 - `src/runtime/request-builder.js` picks the boundary from the serialized
   entries (`selectMultipartBoundary`) and percent-encodes `"`, CR, and LF in
   field names (`escapeFieldName`). The chosen boundary is threaded to
-  `inferContentType` so the header and the body never disagree.
+  `inferContentType`, and `forceMultipartBoundary` rewrites the `boundary`
+  parameter of a multipart content-type that the operation declares
+  (`request.contentType`) or an operator types into a header field, so the
+  header and the body never disagree on either path.
 - `tests/request-builder.test.js` parses the body with the advertised boundary
-  and asserts on the parts a server would see.
+  and asserts on the parts a server would see, including the declared-content-type
+  and header-field paths.
 - English and Japanese implementation-status documents record the contract.
