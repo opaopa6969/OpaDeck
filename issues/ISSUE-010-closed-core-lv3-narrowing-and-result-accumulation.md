@@ -106,9 +106,24 @@ work.
    `tests/workbench.test.js` に dismiss と accumulate:false の回帰テストを追加。
    `showcase/app.js` 自体は `createWorkbench` を使うよう書き換えていない(この follow-up の
    スコープ外; 既存のデモ挙動を変えないための判断)。
-3. **vacant port の残り 9 group**(company / verify / index 残 / indexPointer / zip / building 残 /
-   ziptraining / microProfile 残 / mail / poisonPill / etc)を移植して完全 round-trip を確認するか、
-   代表 5 group で十分とするかを決める。
-4. **docs 追記**: `fieldset` / `include`(DSL.md)と result accumulation / dismiss(COMPONENTS.md)を
-   ドキュメント化。
+3. ~~**vacant port の残り 9 group**~~ — resolved: 代表 5 group で十分とし、残り 9 group は
+   移植しない。理由: 5 group(core / index / building / hierarchy / microProfile)は
+   `examples/vacant-ops.opsui` 冒頭のコメントの通り「埋め込みクエリ URL + raw body +
+   select query」「pure REST path」「同一 URL を method で多重定義」「fieldset/include
+   による field 再利用」「presentation 属性の非表現」という *構造的な変種* をすでに
+   網羅しており、残り 9 group(company / verify / index 残 / indexPointer / zip /
+   building 残 / ziptraining / microProfile 残 / mail / poisonPill)は同じ変種の
+   繰り返しで新しい round-trip パターンを追加しない。`compileOpsui` の回帰カバレッジと
+   ドキュメントの実例としての価値に対して移植コストが見合わないため見送り、
+   必要になれば(=新しい構造パターンが必要になれば)個別に追加する方針とする。
+4. ~~**docs 追記**: `fieldset` / `include` と result accumulation / dismiss のドキュメント化~~
+   — resolved: `f6e6a85`("docs: document fieldset/include DSL sugar and result
+   accumulate/dismiss")で `docs/{en,ja}/DSL.md`(fieldset/include)と
+   `docs/{en,ja}/CORE_MODEL.md`(result accumulation/dismiss)に追記済み。当初案の
+   `COMPONENTS.md` ではなく `CORE_MODEL.md` を選んだのは、accumulate/dismiss が
+   現状モデルのみの機能で `.opsui` 側の構文を持たないため(下記 #6 参照)。
 5. ~~HANDOFF.md の更新~~ — resolved alongside this change; see `HANDOFF.md`.
+6. **`result { options { accumulate false } }` の `.opsui` 構文化** — 現状は
+   `src/app/workbench.js` 側のモデルのみの機能で、DSL パーサ(`src/dsl/opsui.js`)に
+   対応する構文がない(`tests/workbench.test.js` でモデルレベルのみ検証)。DSL 経由で
+   authoring したい要求が出たら着手する。
