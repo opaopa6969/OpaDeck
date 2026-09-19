@@ -103,6 +103,27 @@ test('inlineSvg strips foreignObject (HTML injection vector)', () => {
   assert.equal(svg.querySelectorAll('circle').length, 1, 'circle preserved');
 });
 
+test('inlineSvg strips javascript: URLs from href/xlink:href (XSS hardening)', () => {
+  const document = createFakeDocument();
+  const renderer = resultRenderer('inlineSvg');
+  const payload = '<svg>'
+    + '<a href="javascript:alert(1)"><circle r="1"/></a>'
+    + '<use xlink:href="javascript:alert(2)"/>'
+    + '<a href="  Java\tScript:alert(3)"><circle r="1"/></a>'
+    + '<a href="https://example.com/safe"><circle r="2"/></a>'
+    + '</svg>';
+  const el = renderer.render({ document, bodyText: payload });
+  const svg = el.querySelector('svg');
+  assert.ok(svg, 'svg present after sanitization');
+  const anchors = svg.querySelectorAll('a');
+  assert.equal(anchors.length, 3);
+  assert.equal(anchors[0].hasAttribute('href'), false, 'javascript: href removed');
+  assert.equal(anchors[1].hasAttribute('href'), false, 'obfuscated javascript: href removed');
+  assert.equal(anchors[2].getAttribute('href'), 'https://example.com/safe', 'safe href preserved');
+  const use = svg.querySelector('use');
+  assert.equal(use.hasAttribute('xlink:href'), false, 'javascript: xlink:href removed');
+});
+
 test('timeSeries draws a polyline and point markers from rows', () => {
   const document = createFakeDocument();
   const el = renderTimeSeries({
