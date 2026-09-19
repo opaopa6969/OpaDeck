@@ -1,6 +1,7 @@
 # Progressive Builder — inlineSvg SMIL サニタイズ（反復 1/3）
 
 記録日: 2026-09-20 (JST)。対象: OpaDeck のみ。GitHub issue: #39。
+Builder PR: #44。
 
 ## 観測事実
 
@@ -64,6 +65,8 @@ issue #39 の reopen。データ移行はない。次候補は open issue #38、
 
 - https://github.com/opaopa6969/OpaDeck/issues/39 — 問題と受入条件。
   再現: `gh issue view 39 --json body,comments,state,url`
+- https://github.com/opaopa6969/OpaDeck/pull/44 — Builder の差分、判断理由、
+  検証証拠、revert手順。再現: `gh pr view 44 --json body,commits,files,statusCheckRollup`
 - https://github.com/opaopa6969/OpaDeck/commits/main — 最近の変更。
   再現: `git log --oneline -12 origin/main`
 - https://github.com/opaopa6969/OpaDeck/actions — CI run 0件。
