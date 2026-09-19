@@ -138,6 +138,12 @@ Examples:
   not by the core.
 - custom stats views
 
+The builtin `inlineSvg` renderer removes `script`, `foreignObject`, SMIL
+animation elements (`animate`, `set`, `animateTransform`, `animateMotion`),
+`on*` attributes, and `javascript:` URLs in `href` / `xlink:href` before
+insertion. This narrow sanitizer is not a general SVG allow-list. Register a
+custom renderer when the host requires a stricter content policy.
+
 ## 3. Panel renderer registry
 
 Purpose:

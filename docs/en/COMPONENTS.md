@@ -97,6 +97,11 @@ Notes:
 
 - `tableResult` is worth including early because many internal APIs return arrays of records
 - `inlineSvg` is a strong bridge from the current `vacant-service` custom renderers
+- `inlineSvg` parses response markup as SVG and removes `script`, `foreignObject`,
+  SMIL animation elements (`animate`, `set`, `animateTransform`, `animateMotion`),
+  `on*` attributes, and `javascript:` URLs in `href` / `xlink:href`. This is a
+  focused script-execution defense, not a general SVG allow-list; hosts that need
+  a stricter content policy should supply a custom renderer.
 
 ## 5. Help and tour
 

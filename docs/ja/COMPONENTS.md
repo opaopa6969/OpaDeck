@@ -97,6 +97,11 @@ builtin V1 result:
 
 - internal API は record 配列を返しがちなので `tableResult` は早めに価値がある
 - `inlineSvg` は今の `vacant-service` の custom renderer と素直につながる
+- `inlineSvg` はレスポンスを SVG として解析し、`script`、`foreignObject`、
+  SMIL animation 要素（`animate`、`set`、`animateTransform`、`animateMotion`）、
+  `on*` 属性、`href` / `xlink:href` の `javascript:` URL を除去する。これは
+  script 実行を防ぐための限定的な防御であり、SVG 全体の allow-list ではない。
+  より厳しい content policy が必要な host は custom renderer を登録する。
 
 ## 5. Help と tour
 

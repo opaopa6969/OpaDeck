@@ -60,10 +60,10 @@ export function createBuiltinResultRenderers() {
     },
     {
       // Inline SVG returned by the operation, injected as markup. Auto-matches
-      // image/svg+xml. The markup is parsed and sanitized (script elements,
-      // inline event-handler attributes, and javascript: URLs in href /
-      // xlink:href are stripped) before insertion, so an untrusted response
-      // cannot run script via the SVG payload.
+      // image/svg+xml. The markup is parsed and sanitized (script/foreignObject
+      // and SMIL animation elements, inline event-handler attributes, and
+      // javascript: URLs in href / xlink:href are stripped) before insertion,
+      // blocking the renderer's known script-execution paths.
       id: 'inlineSvg',
       canRender: (ctx) => ctx && typeof ctx.contentType === 'string' && ctx.contentType.includes('svg'),
       render: (ctx) => {
@@ -197,7 +197,14 @@ function tryParse(text) {
   }
 }
 
-const UNSAFE_SVG_TAGS = new Set(['script', 'foreignobject']);
+const UNSAFE_SVG_TAGS = new Set([
+  'script',
+  'foreignobject',
+  'animate',
+  'set',
+  'animatetransform',
+  'animatemotion',
+]);
 const EVENT_ATTR = /^on/i;
 const URL_ATTR = /^(?:href|xlink:href)$/i;
 
