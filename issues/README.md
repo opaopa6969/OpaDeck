@@ -27,7 +27,8 @@ commit, the source files, and the tests).
 - [x] [ISSUE-018: DSL `timeoutMs` With A Non-Numeric Token Parses As NaN And Silently Disables The Timeout](ISSUE-018-dsl-timeoutms-nan-disables-timeout.md)
 - [x] [ISSUE-019: Keep Timeout And Cancellation Active Through Response Body Reads](ISSUE-019-response-body-timeout-and-cancellation.md)
 - [x] [ISSUE-020: Insert Dynamic Query Parameters Before URL Fragments](ISSUE-020-query-before-url-fragment.md)
+- [x] [ISSUE-021: Multipart Body Values Can Inject Extra Form-Data Parts](ISSUE-021-multipart-part-injection.md)
 
 ## Open — follow-up work
 
-None currently tracked.
+_None._

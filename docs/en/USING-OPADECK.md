@@ -61,7 +61,8 @@ const executor = createHttpExecutor({ executions, clock, fetch: window.fetch.bin
 await executor.execute(op, { q: '東京都' });     // 結果は executions に入り execution.* が飛ぶ
 ```
 
-- **body kind**: `none` / `rawField`（1 フィールドを生 body）/ `form`（urlencoded）/ `multipart`（固定境界）。
+- **body kind**: `none` / `rawField`（1 フィールドを生 body）/ `form`（urlencoded）/ `multipart`
+  （決定的な境界。値が既定境界を含むときだけ境界を伸ばしてパート偽造を防ぐ）。
 - **checkbox**: `field.checkedValue` / `uncheckedValue` で HTML 意味論。未チェックは送信されない。
 - **ストリーミング**: `createHttpExecutor({ ..., onProgress })` で NDJSON/JSON Lines を逐次受信
   （ストアは begin→succeed のまま、`onProgress(partial)` で途中描画）。

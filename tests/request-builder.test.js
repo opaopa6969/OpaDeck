@@ -188,3 +188,239 @@ test('buildCurl shells-quotes single quotes in url, headers, and body and omits 
   // Non-GET method emits -X <METHOD>.
   assert.match(buildCurl({ method: 'POST', url: '/x', headers: {}, bodyText: '' }), /^curl -X POST '/);
 });
+
+// Reads the boundary a server would split on: the `boundary` parameter of the
+// content-type header, quoted or not, wherever it sits among the parameters.
+function multipartBoundary(preview) {
+  const key = Object.keys(preview.headers).find((name) => name.toLowerCase() === 'content-type');
+  const match = /;\s*boundary\s*=\s*("[^"]*"|[^;]+)/i.exec(preview.headers[key]);
+  return match[1].replace(/^"|"$/g, '').trim();
+}
+
+// Splits a multipart body the way a server would: on the boundary advertised in
+// the content-type header. Returns [{ name, value }] so a test can assert on the
+// parts the server actually sees rather than on substrings of the raw body.
+function parseMultipart(preview) {
+  const boundary = multipartBoundary(preview);
+  return preview.bodyText
+    .split(`--${boundary}`)
+    .slice(1, -1)
+    .map((chunk) => {
+      // Only the first blank line separates the part headers from the part body;
+      // the body itself may legitimately contain blank lines.
+      const rest = chunk.replace(/^\r\n/, '');
+      const split = rest.indexOf('\r\n\r\n');
+      return {
+        name: /name="([^"]*)"/.exec(rest.slice(0, split))[1],
+        value: rest.slice(split + 4).replace(/\r\n$/, ''),
+      };
+    });
+}
+
+// Re-reads the request the generated curl command describes, applying curl's
+// own rule that a later -H replaces an earlier one with the same name
+// (case-insensitively), and splits the body on the boundary that survives.
+function curlMultipartParts(preview) {
+  const headers = new Map();
+  for (const [, name, value] of preview.curl.matchAll(/-H '((?:[^:]|\\')+): ((?:[^']|\\')*)'/g)) {
+    headers.set(name.toLowerCase(), value);
+  }
+  const boundary = /;\s*boundary\s*=\s*("[^"]*"|[^;']+)/i
+    .exec(headers.get('content-type'))[1]
+    .replace(/^"|"$/g, '')
+    .trim();
+  const body = /--data-raw '((?:[^']|\\')*)'$/.exec(preview.curl)[1].replace(/'\\''/g, "'");
+  return body
+    .split(`--${boundary}`)
+    .slice(1, -1)
+    .map((chunk) => /name="([^"]*)"/.exec(chunk)[1]);
+}
+
+const forgedNote = `x\r\n--${MULTIPART_BOUNDARY}\r\n`
+  + 'Content-Disposition: form-data; name="role"\r\n\r\nadmin';
+
+const uploadOperation = {
+  id: 'upload',
+  groupId: 'building',
+  request: { method: 'POST', url: '/api/upload', body: { kind: 'multipart' } },
+  fields: [
+    { id: 'note', name: 'note', type: 'text', placement: 'body' },
+    { id: 'role', name: 'role', type: 'text', placement: 'body', defaultValue: 'user' },
+  ],
+};
+
+test('multipart escalates the boundary when a value contains the default one', () => {
+  const forged = forgedNote;
+  const preview = buildRequestPreview(uploadOperation, { note: forged });
+
+  const boundary = multipartBoundary(preview);
+  assert.notEqual(boundary, MULTIPART_BOUNDARY, 'a colliding value must not reuse the default boundary');
+  assert.ok(!forged.includes(boundary), 'the chosen boundary must not occur inside the value');
+
+  assert.deepEqual(parseMultipart(preview), [
+    { name: 'note', value: forged },
+    { name: 'role', value: 'user' },
+  ], 'the forged part stays inside the note value instead of becoming its own part');
+});
+
+test('multipart keeps escalating past an already-taken candidate boundary', () => {
+  const preview = buildRequestPreview(uploadOperation, {
+    note: `${MULTIPART_BOUNDARY} and ${MULTIPART_BOUNDARY}1`,
+  });
+
+  assert.equal(
+    preview.headers['content-type'],
+    `multipart/form-data; boundary=${MULTIPART_BOUNDARY}2`,
+  );
+  assert.deepEqual(parseMultipart(preview).map((part) => part.name), ['note', 'role']);
+});
+
+test('multipart percent-encodes quotes and line breaks in a field name', () => {
+  const preview = buildRequestPreview({
+    id: 'upload',
+    groupId: 'building',
+    request: { method: 'POST', url: '/api/upload', body: { kind: 'multipart' } },
+    fields: [{ id: 'odd', name: 'a"b\r\nContent-Type: text/html', type: 'text', placement: 'body' }],
+  }, { odd: 'v' });
+
+  assert.match(
+    preview.bodyText,
+    /Content-Disposition: form-data; name="a%22b%0D%0AContent-Type: text\/html"\r\n\r\nv\r\n/,
+  );
+  assert.equal(preview.bodyText.split('\r\n\r\n').length, 2, 'the name never starts a second header block');
+});
+
+// An operation may declare its own multipart content-type, and an operator may
+// type one into a header field. Both bypass inferContentType, so the advertised
+// boundary has to be rewritten to the one the body actually used.
+test('an operation-declared multipart content-type advertises the escalated boundary', () => {
+  const declared = {
+    ...uploadOperation,
+    request: {
+      ...uploadOperation.request,
+      contentType: `multipart/form-data; boundary=${MULTIPART_BOUNDARY}`,
+    },
+  };
+  const preview = buildRequestPreview(declared, { note: forgedNote });
+
+  const boundary = multipartBoundary(preview);
+  assert.notEqual(boundary, MULTIPART_BOUNDARY);
+  assert.ok(preview.bodyText.startsWith(`--${boundary}\r\n`), 'the body opens with the advertised boundary');
+  assert.deepEqual(parseMultipart(preview), [
+    { name: 'note', value: forgedNote },
+    { name: 'role', value: 'user' },
+  ], 'the forged part stays inside the note value instead of becoming its own part');
+});
+
+test('a header-field multipart content-type advertises the escalated boundary', () => {
+  const declared = {
+    ...uploadOperation,
+    fields: [
+      ...uploadOperation.fields,
+      {
+        id: 'ct',
+        name: 'Content-Type',
+        type: 'text',
+        placement: 'header',
+        defaultValue: `multipart/form-data; boundary=${MULTIPART_BOUNDARY}; charset=utf-8`,
+      },
+    ],
+  };
+  const preview = buildRequestPreview(declared, { note: forgedNote });
+
+  assert.equal(
+    preview.headers['Content-Type'],
+    `multipart/form-data; charset=utf-8; boundary=${MULTIPART_BOUNDARY}1`,
+  );
+  assert.equal(Object.keys(preview.headers).filter((k) => k.toLowerCase() === 'content-type').length, 1);
+  assert.deepEqual(parseMultipart(preview).map((part) => part.name), ['note', 'role']);
+});
+
+test('a declared multipart content-type without a boundary parameter gains one', () => {
+  const declared = {
+    ...uploadOperation,
+    request: { ...uploadOperation.request, contentType: 'multipart/form-data' },
+  };
+  const preview = buildRequestPreview(declared, { note: 'plain' });
+
+  assert.equal(
+    preview.headers['content-type'],
+    `multipart/form-data; boundary=${MULTIPART_BOUNDARY}`,
+  );
+  assert.deepEqual(parseMultipart(preview), [
+    { name: 'note', value: 'plain' },
+    { name: 'role', value: 'user' },
+  ]);
+});
+
+test('a declared non-multipart content-type is left untouched', () => {
+  const declared = {
+    id: 'raw',
+    groupId: 'building',
+    request: {
+      method: 'POST',
+      url: '/api/raw',
+      contentType: 'application/json',
+      body: { kind: 'rawField', fieldId: 'payload' },
+    },
+    fields: [{ id: 'payload', type: 'text', placement: 'body' }],
+  };
+  const preview = buildRequestPreview(declared, { payload: '{"a":1}' });
+
+  assert.equal(preview.headers['content-type'], 'application/json');
+});
+
+// curl replaces same-named headers case-insensitively (the last -H wins) and
+// fetch joins them with a comma, so a second content-type entry left behind by
+// a differently-cased header field would re-advertise the pre-escalation
+// boundary and make the forged part visible again.
+test('a declared content-type replaces a differently-cased header field instead of duplicating it', () => {
+  const declared = {
+    ...uploadOperation,
+    request: {
+      ...uploadOperation.request,
+      contentType: `multipart/form-data; boundary=${MULTIPART_BOUNDARY}`,
+    },
+    fields: [
+      ...uploadOperation.fields,
+      {
+        id: 'ct',
+        name: 'Content-Type',
+        type: 'text',
+        placement: 'header',
+        defaultValue: `multipart/form-data; boundary=${MULTIPART_BOUNDARY}`,
+      },
+    ],
+  };
+  const preview = buildRequestPreview(declared, { note: forgedNote });
+
+  const contentTypeKeys = Object.keys(preview.headers).filter((k) => k.toLowerCase() === 'content-type');
+  assert.equal(contentTypeKeys.length, 1, 'only one content-type may reach the wire');
+
+  const boundary = multipartBoundary(preview);
+  assert.notEqual(boundary, MULTIPART_BOUNDARY);
+  assert.ok(preview.bodyText.startsWith(`--${boundary}\r\n`));
+  assert.deepEqual(parseMultipart(preview), [
+    { name: 'note', value: forgedNote },
+    { name: 'role', value: 'user' },
+  ]);
+
+  // What curl would actually send: the last -H for a name wins, case-insensitively.
+  assert.deepEqual(curlMultipartParts(preview), ['note', 'role']);
+});
+
+test('two header fields differing only in case collapse to the last one', () => {
+  const operation = {
+    id: 'ping',
+    groupId: 'core',
+    request: { method: 'GET', url: '/api/ping' },
+    fields: [
+      { id: 'a', name: 'X-Token', type: 'text', placement: 'header', defaultValue: 'first' },
+      { id: 'b', name: 'x-token', type: 'text', placement: 'header', defaultValue: 'second' },
+    ],
+  };
+  const preview = buildRequestPreview(operation, {});
+
+  assert.deepEqual(Object.keys(preview.headers), ['X-Token']);
+  assert.equal(preview.headers['X-Token'], 'second');
+});

@@ -69,6 +69,16 @@ file:
 - execution store with history
 - request preview（query/path/header、raw/form/multipart body、curl）。動的 query は
   URL fragment より前へ挿入し、既存の静的 query と fragment の両方を保持する
+- multipart body の境界は決定的に選ぶ。既定の `MULTIPART_BOUNDARY` が
+  serialize 後の name/value に含まれる場合だけ数字 suffix を付けて伸ばすため、
+  operator が入力した値で追加パートを偽造できない。field name 中の `"`・CR・LF は
+  `Content-Disposition` 内で percent-encode する。operation の `contentType` や
+  header field で multipart の content-type を明示した場合も、その `boundary`
+  パラメータを実際に使った境界へ書き換えるため、header / preview body / curl は
+  常に同じ境界を指す
+- header 名は大小を無視して 1 本に保つ（後の書き込みが勝ち、既存の表記は残す）。
+  curl は同名 header を後勝ちで置換し、fetch はカンマ連結するため、大小違いの
+  重複を残すと content-type が 2 本になり片方が古い境界を advertise してしまう
 - injectable fetch による HTTP 実行、本文/NDJSON stream 読了まで有効な
   timeout/cancel、execution.* event
 - NDJSON/JSON Lines の `onProgress` による逐次受信

@@ -88,31 +88,53 @@ function buildHeadersAndBody(request, method, fields, fieldState) {
     }
     const value = readValue(fieldState, field);
     if (value != null && value !== '') {
-      headers[serializedKey(field)] = String(value);
+      setHeader(headers, serializedKey(field), String(value));
     }
   }
 
   if (Array.isArray(request.accept) && request.accept.length > 0) {
-    headers.accept = request.accept.join(', ');
+    setHeader(headers, 'accept', request.accept.join(', '));
   }
 
   let bodyText;
   if (!BODYLESS_METHODS.has(method)) {
-    bodyText = buildBody(request, fields, fieldState);
+    const bodyContext = {};
+    bodyText = buildBody(request, fields, fieldState, bodyContext);
     if (bodyText != null && request.contentType) {
-      headers['content-type'] = request.contentType;
+      setHeader(headers, 'content-type', request.contentType);
     } else if (bodyText != null && !hasHeader(headers, 'content-type')) {
-      const inferred = inferContentType(request);
+      const inferred = inferContentType(request, bodyContext);
       if (inferred) {
-        headers['content-type'] = inferred;
+        setHeader(headers, 'content-type', inferred);
       }
+    }
+    if (bodyText != null && bodyContext.boundary) {
+      forceMultipartBoundary(headers, bodyContext.boundary);
     }
   }
 
   return { headers, bodyText };
 }
 
-function buildBody(request, fields, fieldState) {
+// A multipart content-type declared on the operation (request.contentType) or
+// typed into a header field advertises its own boundary, which is not the one
+// buildMultipart had to escalate to. A server splits on the advertised boundary,
+// so leaving them out of sync re-opens the injection the escalation closes:
+// rewrite the parameter so header, body, and curl always name the same boundary.
+function forceMultipartBoundary(headers, boundary) {
+  const key = Object.keys(headers).find((name) => name.toLowerCase() === 'content-type');
+  if (!key) {
+    return;
+  }
+  const value = String(headers[key]);
+  if (!/^\s*multipart\//i.test(value)) {
+    return;
+  }
+  const withoutBoundary = value.replace(/;\s*boundary\s*=\s*(?:"[^"]*"|[^;]+)/gi, '');
+  headers[key] = `${withoutBoundary.trim().replace(/;\s*$/, '')}; boundary=${boundary}`;
+}
+
+function buildBody(request, fields, fieldState, context = {}) {
   const body = request.body;
   if (!body || body.kind === 'none') {
     return undefined;
@@ -143,28 +165,31 @@ function buildBody(request, fields, fieldState) {
     return form.toString();
   }
   if (body.kind === 'multipart') {
-    return buildMultipart(fields, fieldState);
+    return buildMultipart(fields, fieldState, context);
   }
   return undefined;
 }
 
-function inferContentType(request) {
+function inferContentType(request, context = {}) {
   const body = request.body;
   if (body && body.kind === 'form') {
     return 'application/x-www-form-urlencoded';
   }
   if (body && body.kind === 'multipart') {
-    return `multipart/form-data; boundary=${MULTIPART_BOUNDARY}`;
+    return `multipart/form-data; boundary=${context.boundary || MULTIPART_BOUNDARY}`;
   }
   return undefined;
 }
 
-// A fixed boundary keeps buildRequestPreview pure (no Date/Math.random) and lets
-// the preview, curl, and the executed request stay byte-for-byte identical.
+// The default boundary keeps buildRequestPreview pure (no Date/Math.random) and
+// lets the preview, curl, and the executed request stay byte-for-byte identical.
+// It is a published constant, so a value the operator types can contain it; when
+// that happens selectMultipartBoundary derives a longer boundary instead. The
+// derivation only reads the serialized entries, so it stays deterministic.
 export const MULTIPART_BOUNDARY = '----OpaDeckFormBoundary7MA4YWxkTrZu0gW';
 
-function buildMultipart(fields, fieldState) {
-  const parts = [];
+function buildMultipart(fields, fieldState, context = {}) {
+  const entries = [];
   for (const field of fields) {
     if (field.placement !== 'body') {
       continue;
@@ -178,15 +203,43 @@ function buildMultipart(fields, fieldState) {
       if (item == null) {
         continue;
       }
-      parts.push(
-        `--${MULTIPART_BOUNDARY}\r\n`
-        + `Content-Disposition: form-data; name="${serializedKey(field)}"\r\n\r\n`
-        + `${String(item)}\r\n`,
-      );
+      entries.push({ name: escapeFieldName(serializedKey(field)), value: String(item) });
     }
   }
-  parts.push(`--${MULTIPART_BOUNDARY}--\r\n`);
+
+  const boundary = selectMultipartBoundary(entries);
+  context.boundary = boundary;
+
+  const parts = entries.map((entry) => (
+    `--${boundary}\r\n`
+    + `Content-Disposition: form-data; name="${entry.name}"\r\n\r\n`
+    + `${entry.value}\r\n`
+  ));
+  parts.push(`--${boundary}--\r\n`);
   return parts.join('');
+}
+
+// A boundary that appears inside a part lets that part close itself and start a
+// new one, so an operator-supplied value could forge extra form-data parts.
+// Walk a deterministic candidate sequence until one is absent from every entry.
+function selectMultipartBoundary(entries) {
+  let boundary = MULTIPART_BOUNDARY;
+  let suffix = 0;
+  while (entries.some((entry) => entry.name.includes(boundary) || entry.value.includes(boundary))) {
+    suffix += 1;
+    boundary = `${MULTIPART_BOUNDARY}${suffix}`;
+  }
+  return boundary;
+}
+
+// Content-Disposition carries the name as a quoted string on its own header
+// line, so a quote or a line break in the name would break out of it. Percent-
+// encode exactly those three characters, the way browsers serialize form names.
+function escapeFieldName(name) {
+  return String(name)
+    .replace(/\r/g, '%0D')
+    .replace(/\n/g, '%0A')
+    .replace(/"/g, '%22');
 }
 
 export function buildCurl(preview) {
@@ -271,6 +324,18 @@ function joinUrl(baseUrl, url) {
     return right;
   }
   return left.replace(/\/+$/, '') + '/' + right.replace(/^\/+/, '');
+}
+
+// Header names are case-insensitive, so two entries differing only in case are
+// a single header on the wire: curl keeps the last one, fetch joins them with a
+// comma. Keep one entry per name -- reusing the casing already stored, so an
+// operator-typed `Content-Type` stays as typed -- and let the later write win.
+// Without this, a declared request.contentType next to a differently-cased
+// header field would leave a second content-type behind advertising the
+// pre-escalation boundary, which forceMultipartBoundary never sees.
+function setHeader(headers, name, value) {
+  const existing = Object.keys(headers).find((key) => key.toLowerCase() === name.toLowerCase());
+  headers[existing == null ? name : existing] = value;
 }
 
 function hasHeader(headers, name) {
