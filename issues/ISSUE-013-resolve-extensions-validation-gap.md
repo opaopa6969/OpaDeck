@@ -86,3 +86,16 @@ The choice between Option A and Option B is a design decision:
 
 This issue is about closing a spec/impl gap, not about adding features. Either
 resolution is acceptable; the goal is consistency.
+
+## Status
+
+Resolved (GitHub #23). Took Option A for the checks and Option B for their
+placement: the four checks are implemented, but in the registry layer as the
+companion validator `validateCapabilities(app, registries)`
+(`src/registry/validate-capabilities.js`), not in the core. `validateApp` and
+`compileOpsui` compose it only when `{ registries }` is passed, so existing
+callers are unchanged and `src/core/` keeps its no-registry boundary
+(`tests/core-boundary.test.js`). `result.renderer: 'auto'` is treated as the
+runtime-selection sentinel, not an id. Both en/ja `EXTENSIONS.md` "Validation
+obligations" sections now describe this split. Tests:
+`tests/validate-capabilities.test.js`.

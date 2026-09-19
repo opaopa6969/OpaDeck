@@ -29,6 +29,7 @@ Companion validators + composition:
 - [src/layout/validate-layout.js](../../src/layout/validate-layout.js) — `validateLayouts`
 - [src/help/validate-help.js](../../src/help/validate-help.js) — `validateHelp` (help + tour)
 - [src/geo/validate-geo.js](../../src/geo/validate-geo.js) — `validateGeoScene`
+- [src/registry/validate-capabilities.js](../../src/registry/validate-capabilities.js) — `validateCapabilities` (registry capability checks; see EXTENSIONS.md)
 - [src/validate.js](../../src/validate.js) — `validateApp` composes core + companions
 
 `validateAppDefinition` validates today:
@@ -43,6 +44,9 @@ Companion validators + composition:
 - invalid layout/panel bindings (layout companion)
 - invalid help targets and tour targets (help companion)
 - geoScene options/layers requirements (geo companion)
+- unknown `result.renderer` / panel renderer id / data-source adapter kind, and
+  field types with no matching renderer — only when the caller passes
+  `{ registries }` (capability companion; `compileOpsui` forwards the option)
 
 ## 2. Runtime services
 
@@ -200,6 +204,7 @@ Driven by the first real consumers (an admin console + a Japan address map):
 Run on Node.js >= 18 (`npm test`, which invokes `node --test`), across
 
 - core validation rules + core/companion split (`tests/validate-app.test.js`)
+- registry capability checks + opt-in wiring (`tests/validate-capabilities.test.js`)
 - the core boundary invariant (`tests/core-boundary.test.js`)
 - runtime stores and scheduler (`tests/runtime.test.js`)
 - typed registries (`tests/registry.test.js`)

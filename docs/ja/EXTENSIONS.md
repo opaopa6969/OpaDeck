@@ -273,16 +273,29 @@ dynamic remote plugin loading も不要。
 
 ## Validation obligation
 
-構造検証の責任は validator が持ち続ける。
+core validator(`validateAppDefinition`)が持つのは構造検証だけ:
+id の一意性、参照整合性、request/body の形。どの renderer id / adapter kind /
+field type が登録済みかは core は一切知らない(`tests/core-boundary.test.js`
+が守る `src/core/` の境界不変条件)。
 
-registry は capability check を足してもよいが、core check の代わりにはならない。
+registry に対する capability check は registry 層の companion validator
+`validateCapabilities(app, registries)`(`src/registry/validate-capabilities.js`)
+が担う。`validateApp(app, { registries })` と `compileOpsui(source, { registries })`
+は、呼び出し側が registries を渡したときだけこれを合成する。渡さなければ検証は
+純粋に構造のみ。オブジェクト内に該当 registry が無いチェックは個別にスキップされる。
 
-例:
+| registry | ProblemEntry code | 条件 |
+|----------|-------------------|------|
+| `resultRenderers` | `result.renderer.unknown` | `result.renderer` が `auto` 以外の文字列で `has(id)` が false |
+| `panelRenderers` | `panel.renderer.unknown` | layout の `panel` ノードの `renderer` が未登録 |
+| `dataSourceAdapters` | `dataSource.kind.unknown` | datasource の `kind` に adapter が無い |
+| `fieldRenderers` | `field.type.unsupported` | field に対して `match(field)` が null |
 
-- unknown `result.renderer`
-- unknown panel renderer id
-- unknown datasource adapter kind
-- 対応 renderer が存在しない field type
+`result.renderer: 'auto'` は registry id ではなく、実行時に `canRender()` へ
+renderer 選択を委ねる番兵なので unknown とは報告しない。
+
+registry はさらに capability check を足してもよいが、core check の代わりには
+ならず、core が registry に依存することもない。
 
 ## 設計ルール
 

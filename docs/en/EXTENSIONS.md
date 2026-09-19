@@ -275,16 +275,30 @@ No loose “any object with hooks” shape.
 
 ## Validation obligations for extensions
 
-The validator should still own structural validation.
+The core validator (`validateAppDefinition`) owns structural validation only:
+id uniqueness, reference integrity, request/body shape. It never learns which
+renderer ids, adapter kinds, or field types are registered — that is the
+`src/core/` boundary invariant enforced by `tests/core-boundary.test.js`.
 
-Registries may add capability checks, but they should not replace core checks.
+Capability checks against the registries live in the registry layer as a
+companion validator, `validateCapabilities(app, registries)`
+(`src/registry/validate-capabilities.js`). `validateApp(app, { registries })`
+and `compileOpsui(source, { registries })` compose it in only when the caller
+passes registries; without them, validation stays purely structural. Each
+check is skipped when its registry is absent from the object.
 
-Examples:
+| registry | ProblemEntry code | condition |
+|----------|-------------------|-----------|
+| `resultRenderers` | `result.renderer.unknown` | `result.renderer` is a string other than `auto` and `has(id)` is false |
+| `panelRenderers` | `panel.renderer.unknown` | a layout `panel` node's `renderer` is not registered |
+| `dataSourceAdapters` | `dataSource.kind.unknown` | a data source's `kind` has no adapter |
+| `fieldRenderers` | `field.type.unsupported` | `match(field)` returns null for a field |
 
-- unknown `result.renderer`
-- unknown panel renderer id
-- unknown data-source adapter kind
-- field type with no matching renderer
+`result.renderer: 'auto'` is not a registry id: it defers renderer selection to
+`canRender()` at runtime, so it is never reported as unknown.
+
+Registries may add further capability checks, but they never replace the core
+checks, and the core never depends on them.
 
 ## Design rule
 
