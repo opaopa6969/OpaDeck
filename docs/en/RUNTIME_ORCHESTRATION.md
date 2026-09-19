@@ -155,6 +155,11 @@ Notes:
 
 - `after` and `every` are enough for help/tour and polling
 - `frame` is optional and useful for SVG/map/animation surfaces
+- `after` requires a finite, non-negative `delayMs`; `every` requires a finite,
+  *positive* `periodMs` — both throw `RangeError` otherwise. `every` rejects
+  zero/non-finite periods specifically because a task that re-registers at the
+  same virtual time never advances past `now`, which hangs the manual test
+  clock's `advanceBy`/`advanceTo` loop (and busy-loops a real clock).
 
 ## 4. Sync domains: maybe later
 
