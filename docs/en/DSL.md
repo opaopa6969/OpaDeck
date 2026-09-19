@@ -126,6 +126,27 @@ Rules:
   include plus a literal `field`) is caught by the existing
   `field.id.duplicate` check — fieldsets do not get a pass on id uniqueness.
 
+## Result options
+
+`result` accepts an optional `options` block, a thin syntactic wrapper around
+the `ResultViewDefinition.options` bag described in `CORE_MODEL.md`. The only
+key currently understood is `accumulate`, consumed by the `resultStack` panel
+renderer (`src/renderers/panel-renderers.js`) to cap the visible result list
+at the latest record instead of full run history:
+
+```opsui
+result {
+  renderer jsonFoldable
+  options {
+    accumulate false
+  }
+}
+```
+
+`options` stays opaque to the core (see `CORE_MODEL.md`); the DSL only parses
+the `accumulate <true|false>` key today. There is no compile-time validation
+of unrelated `options` keys because none exist yet.
+
 ## Layout primitives
 
 A `layout` block holds a single root render node built from these primitives:

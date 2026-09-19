@@ -1,6 +1,6 @@
 # OpaDeck Handoff
 
-Last updated: 2026-09-20 (JST)
+Last updated: 2026-09-20 (JST, follow-up #6)
 
 ## Repository
 
@@ -48,7 +48,7 @@ work has landed as small `fix/issue-N-*` / `docs/*` PRs merged individually
 
 ## Verification status
 
-- `npm test` (`node --test`): **151 tests passing**, 0 failing.
+- `npm test` (`node --test`): **152 tests passing**, 0 failing.
 - Showcase served over HTTP and the static module graph loads (200s).
 - Browser interaction is covered by a manual smoke-test checklist in
   `docs/en/IMPLEMENTATION.md` plus an automated headless smoke harness
@@ -76,7 +76,8 @@ work has landed as small `fix/issue-N-*` / `docs/*` PRs merged individually
    `docs/{en,ja}/CORE_MODEL.md` (accumulation/dismiss) — `CORE_MODEL.md` instead
    of `COMPONENTS.md` because accumulate/dismiss is currently model-only (see
    next item). See `issues/ISSUE-010-*.md` follow-up #4.
-4. Add `.opsui` DSL syntax for `result { options { accumulate false } }` — it is
-   currently model-only (`src/app/workbench.js`, covered by
-   `tests/workbench.test.js`); `src/dsl/opsui.js` has no parser support for it
-   yet. See `issues/ISSUE-010-*.md` follow-up #6.
+4. ~~Add `.opsui` DSL syntax for `result { options { accumulate false } }`~~ —
+   resolved: `src/dsl/opsui.js` now parses `result { options { accumulate
+   <bool> } }` into `operation.result.options` (see `tests/opsui.test.js`);
+   documented in `docs/{en,ja}/DSL.md` and `docs/{en,ja}/CORE_MODEL.md`. See
+   `issues/ISSUE-010-*.md` follow-up #6.

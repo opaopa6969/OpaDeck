@@ -452,13 +452,28 @@ class Parser {
     const result = { renderer: 'auto' };
     this.expect('lbrace', "'{'");
     while (this.peek().type !== 'rbrace') {
-      const keyword = this.expectAtTopLevel(['renderer']);
+      const keyword = this.expectAtTopLevel(['renderer', 'options']);
       if (keyword.value === 'renderer') {
         result.renderer = this.expectWord().value;
+      } else {
+        result.options = this.parseResultOptions();
       }
     }
     this.expect('rbrace', "'}'");
     return result;
+  }
+
+  parseResultOptions() {
+    const options = {};
+    this.expect('lbrace', "'{'");
+    while (this.peek().type !== 'rbrace') {
+      const keyword = this.expectAtTopLevel(['accumulate']);
+      if (keyword.value === 'accumulate') {
+        options.accumulate = this.expectBoolean();
+      }
+    }
+    this.expect('rbrace', "'}'");
+    return options;
   }
 
   // --- layout blocks -------------------------------------------------------

@@ -76,6 +76,23 @@ app Demo v1 {
   assert.equal(b.fields[1].defaultValue, '1450065'); // independent copy
 });
 
+test('result { options { accumulate false } } parses into the operation result', () => {
+  const source = `
+app Demo v1 {
+  group g {
+    operation a {
+      request { method GET url "/a" }
+      result { renderer jsonFoldable options { accumulate false } }
+    }
+  }
+}`;
+  const { app, problems } = compileOpsui(source);
+  assert.equal(problems.length, 0, JSON.stringify(problems, null, 2));
+  const operation = app.groups[0].operations[0];
+  assert.equal(operation.result.renderer, 'jsonFoldable');
+  assert.deepEqual(operation.result.options, { accumulate: false });
+});
+
 test('include of an unknown fieldset is a located parse error', () => {
   const { app, problems } = compileOpsui('app Demo v1 {\n  group g {\n    operation a {\n      request { method GET url "/a" }\n      include nope\n    }\n  }\n}');
   assert.equal(app, null);

@@ -125,6 +125,27 @@ app VacantOps v1 {
   組み合わせで)出現した場合は既存の `field.id.duplicate` チェックが捕捉する。
   fieldset だからといって id 一意性の対象外にはならない。
 
+## result options
+
+`result` は任意で `options` ブロックを受け付ける。`CORE_MODEL.md` に書かれている
+`ResultViewDefinition.options` の薄い構文糖衣。現時点で解釈されるキーは
+`accumulate` だけで、`resultStack` panel renderer
+(`src/renderers/panel-renderers.js`)が読み取り、実行履歴を全件表示する代わりに
+最新 1 件だけに絞る:
+
+```opsui
+result {
+  renderer jsonFoldable
+  options {
+    accumulate false
+  }
+}
+```
+
+`options` は core にとって不透明なまま(`CORE_MODEL.md` 参照)。DSL が今日
+パースするのは `accumulate <true|false>` キーのみで、他の `options` キーは
+まだ存在しないためコンパイル時の検証も無い。
+
 ## layout primitive
 
 - `split <id> <row|column> { ... }` — 子ノードは厳密に2個。省略可能な

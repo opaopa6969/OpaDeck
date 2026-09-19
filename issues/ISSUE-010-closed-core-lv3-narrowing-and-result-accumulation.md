@@ -123,7 +123,10 @@ work.
    `COMPONENTS.md` ではなく `CORE_MODEL.md` を選んだのは、accumulate/dismiss が
    現状モデルのみの機能で `.opsui` 側の構文を持たないため(下記 #6 参照)。
 5. ~~HANDOFF.md の更新~~ — resolved alongside this change; see `HANDOFF.md`.
-6. **`result { options { accumulate false } }` の `.opsui` 構文化** — 現状は
-   `src/app/workbench.js` 側のモデルのみの機能で、DSL パーサ(`src/dsl/opsui.js`)に
-   対応する構文がない(`tests/workbench.test.js` でモデルレベルのみ検証)。DSL 経由で
-   authoring したい要求が出たら着手する。
+6. ~~**`result { options { accumulate false } }` の `.opsui` 構文化**~~ —
+   resolved: `src/dsl/opsui.js` の `parseResult()` が `options { accumulate
+   <true|false> } }` を解析し `operation.result.options` へ格納するように
+   なった(`tests/opsui.test.js` に回帰テストを追加)。
+   `docs/{en,ja}/DSL.md` に "Result options" 節、`docs/{en,ja}/CORE_MODEL.md`
+   に DSL 構文の存在を追記。`options` の意味づけは引き続き core にとって
+   不透明なまま(`accumulate` を解釈するのは `resultStack` panel renderer 側)。
