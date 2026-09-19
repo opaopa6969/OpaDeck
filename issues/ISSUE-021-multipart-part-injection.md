@@ -34,8 +34,7 @@ the documentation. No dependency, public API removal, or data migration.
 
 ## Status
 
-Implemented by `fix/issue-21-multipart-part-injection`; GitHub #36 closes when
-the reviewed PR merges.
+Done on `main` (GitHub #36, merged via PR #37, resolving commit `c5278f5`).
 
 - `src/runtime/request-builder.js` picks the boundary from the serialized
   entries (`selectMultipartBoundary`) and percent-encodes `"`, CR, and LF in
