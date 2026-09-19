@@ -28,6 +28,7 @@ commit, the source files, and the tests).
 - [x] [ISSUE-019: Keep Timeout And Cancellation Active Through Response Body Reads](ISSUE-019-response-body-timeout-and-cancellation.md)
 - [x] [ISSUE-020: Insert Dynamic Query Parameters Before URL Fragments](ISSUE-020-query-before-url-fragment.md)
 - [x] [ISSUE-021: Multipart Body Values Can Inject Extra Form-Data Parts](ISSUE-021-multipart-part-injection.md)
+- [x] [ISSUE-022: `current()` Drops An Earlier Still-Running Execution Once A Later One Finishes](ISSUE-022-execution-store-current-overlapping-completion-order.md)
 
 ## Open — follow-up work
 

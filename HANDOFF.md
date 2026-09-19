@@ -33,10 +33,11 @@ Last updated: 2026-09-20 (JST, follow-up #6)
 ## Issues
 
 Each `issues/ISSUE-00N-*.md` carries its own `## Status` footer with the
-resolving commit or PR. As of this update there are no open GitHub issues and
-no open PRs (`gh issue list --state open`, `gh pr list --state open`); recent
-work has landed as small `fix/issue-N-*` / `docs/*` PRs merged individually
-(see `git log --oneline` for the current list, most recently PRs up to #54).
+resolving commit or PR. Recent work has landed as small `fix/issue-N-*` /
+`docs/*` PRs merged individually (see `git log --oneline` for the current
+list, most recently PRs up to #56). GitHub #57 /
+`issues/ISSUE-022-execution-store-current-overlapping-completion-order.md` is
+in flight as of this update (`fix/issue-57-execution-store-current-overlap`).
 
 ## Environment notes (this machine)
 
@@ -48,7 +49,7 @@ work has landed as small `fix/issue-N-*` / `docs/*` PRs merged individually
 
 ## Verification status
 
-- `npm test` (`node --test`): **152 tests passing**, 0 failing.
+- `npm test` (`node --test`): **153 tests passing**, 0 failing.
 - Showcase served over HTTP and the static module graph loads (200s).
 - Browser interaction is covered by a manual smoke-test checklist in
   `docs/en/IMPLEMENTATION.md` plus an automated headless smoke harness
