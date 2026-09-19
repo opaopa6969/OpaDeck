@@ -160,6 +160,22 @@ test('tableResult renders rows and inferred columns', () => {
   assert.equal(el.querySelectorAll('tbody tr').length, 2);
 });
 
+test('tableResult tolerates null/non-object rows mixed with object rows', () => {
+  const document = createFakeDocument();
+  const renderer = resultRenderer('tableResult');
+  const rows = [null, { id: 1, name: 'a' }, 'plain-string', 42];
+  assert.equal(renderer.canRender({ bodyJson: rows }), true);
+  const el = renderer.render({ document, bodyJson: rows });
+  const headers = el.querySelectorAll('th').map((th) => th.textContent);
+  assert.deepEqual(headers, ['id', 'name']);
+  const bodyRows = el.querySelectorAll('tbody tr');
+  assert.equal(bodyRows.length, 4);
+  const firstRowCells = bodyRows[0].querySelectorAll('td').map((td) => td.textContent);
+  assert.deepEqual(firstRowCells, ['', '']);
+  const secondRowCells = bodyRows[1].querySelectorAll('td').map((td) => td.textContent);
+  assert.deepEqual(secondRowCells, ['1', 'a']);
+});
+
 test('groupNav renders operations with stable data-op-id and selects on click', () => {
   const document = createFakeDocument();
   const selected = [];

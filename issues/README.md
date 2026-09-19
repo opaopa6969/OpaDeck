@@ -30,6 +30,7 @@ commit, the source files, and the tests).
 - [x] [ISSUE-021: Multipart Body Values Can Inject Extra Form-Data Parts](ISSUE-021-multipart-part-injection.md)
 - [x] [ISSUE-022: `current()` Drops An Earlier Still-Running Execution Once A Later One Finishes](ISSUE-022-execution-store-current-overlapping-completion-order.md)
 - [x] [ISSUE-023: Tour Runtime Throws On A Null/Non-Object Step](ISSUE-023-tour-runtime-null-step.md)
+- [x] [ISSUE-024: tableResult Renderer Throws On A Null/Non-Object Row](ISSUE-024-table-result-null-row.md)
 
 ## Open — follow-up work
 
