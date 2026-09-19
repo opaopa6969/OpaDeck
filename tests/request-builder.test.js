@@ -144,6 +144,32 @@ test('defaultValue is used when fieldState does not override the field', () => {
   assert.equal(buildRequestPreview(operation, { q: 'override' }).url, '/api/search?q=override');
 });
 
+test('query fields are inserted before a URL fragment', () => {
+  const operation = {
+    id: 'search',
+    groupId: 'core',
+    request: { method: 'GET', url: '/api/search#results' },
+    fields: [{ id: 'q', name: 'q', type: 'text', placement: 'query' }],
+  };
+
+  assert.equal(
+    buildRequestPreview(operation, { q: 'hello world' }).url,
+    '/api/search?q=hello+world#results',
+  );
+
+  operation.request.url = '/api/search?fixed=recent#results';
+  assert.equal(
+    buildRequestPreview(operation, { q: 'hello world' }).url,
+    '/api/search?fixed=recent&q=hello+world#results',
+  );
+
+  operation.request.url = '/api/search?fixed=recent';
+  assert.equal(
+    buildRequestPreview(operation, { q: 'hello world' }).url,
+    '/api/search?fixed=recent&q=hello+world',
+  );
+});
+
 test('buildCurl shells-quotes single quotes in url, headers, and body and omits -X for GET', () => {
   const preview = {
     method: 'GET',
