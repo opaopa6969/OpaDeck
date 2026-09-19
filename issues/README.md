@@ -25,6 +25,7 @@ commit, the source files, and the tests).
 - [x] [ISSUE-016: HTTP 304 Not Modified Is Recorded As An Error](ISSUE-016-http-304-recorded-as-error.md)
 - [x] [ISSUE-017: Tour Emits stepChanged And Re-renders The Card After finish()](ISSUE-017-tour-step-changed-after-finish.md)
 - [x] [ISSUE-018: DSL `timeoutMs` With A Non-Numeric Token Parses As NaN And Silently Disables The Timeout](ISSUE-018-dsl-timeoutms-nan-disables-timeout.md)
+- [x] [ISSUE-019: Keep Timeout And Cancellation Active Through Response Body Reads](ISSUE-019-response-body-timeout-and-cancellation.md)
 
 ## Open — follow-up work
 

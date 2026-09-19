@@ -71,7 +71,6 @@ export function createHttpExecutor(options = {}) {
         body: BODYLESS_METHODS.has(preview.method) ? undefined : preview.bodyText,
         signal: controller ? controller.signal : undefined,
       });
-      cleanup(cancelTimer, detachSignal);
       const snapshot = await readResponse(response, startedAt, operation);
       if (response.ok || response.status === 304) {
         return executions.succeed(snapshot);
@@ -84,7 +83,6 @@ export function createHttpExecutor(options = {}) {
         ),
       });
     } catch (error) {
-      cleanup(cancelTimer, detachSignal);
       if (state.timedOut) {
         return executions.timeout(createProblem(
           'execution.timeout',
@@ -106,6 +104,11 @@ export function createHttpExecutor(options = {}) {
           error && error.message ? error.message : 'Network request failed.'
         ),
       });
+    } finally {
+      // A fetch promise resolves when response headers arrive, before the body
+      // is necessarily consumed. Keep timeout and caller cancellation active
+      // through readResponse(), then release both on every terminal path.
+      cleanup(cancelTimer, detachSignal);
     }
   }
 
