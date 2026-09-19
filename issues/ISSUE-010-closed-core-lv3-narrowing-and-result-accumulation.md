@@ -89,13 +89,14 @@ closed core を「operation を実行するのに最小限必要な意味」だ�
 
 ## Status
 
-- 実装・テストは **完了し全 green**。ただし **未コミット**(working tree のみ)。
-  この差分は `main` 上にある(前回 `main` は `origin/main` と同一で push 済み)。
-  共有状態を変える操作(commit / push / PR)は未実施 — 明示判断待ち。
+Done on `main`. Resolving commit: `7253774` ("refactor(core): narrow closed
+core to Lv3, add field fragments and result accumulation"). `main` tracks
+`origin/main` and is pushed; there is no outstanding local-only diff for this
+work.
 
 ## Follow-ups / handoff
 
-1. **commit / push の判断**(branch を切るか main 直か。汎用設計ドメインなので本文の言語は任意)。
+1. ~~commit / push の判断~~ — resolved: landed as `7253774` on `main`.
 2. **showcase/host への配線**: `resultStack` と execution-store は dismiss / limit を
    サポート済みだが、host ループ(showcase/app.js)はまだ `store.remove` / `limit` を呼んでいない。
    `result { renderer ... }` に `options { accumulate false }` 規約を設け、host が accumulate=false →
@@ -105,5 +106,4 @@ closed core を「operation を実行するのに最小限必要な意味」だ�
    代表 5 group で十分とするかを決める。
 4. **docs 追記**: `fieldset` / `include`(DSL.md)と result accumulation / dismiss(COMPONENTS.md)を
    ドキュメント化。
-5. **HANDOFF.md の更新**: 「divergent main(unrelated histories)」の注記は現状と乖離している可能性。
-   `main` が `origin/main` を追跡し push 済みの現状に合わせて見直す。
+5. ~~HANDOFF.md の更新~~ — resolved alongside this change; see `HANDOFF.md`.
