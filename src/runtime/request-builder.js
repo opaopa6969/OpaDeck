@@ -88,12 +88,12 @@ function buildHeadersAndBody(request, method, fields, fieldState) {
     }
     const value = readValue(fieldState, field);
     if (value != null && value !== '') {
-      headers[serializedKey(field)] = String(value);
+      setHeader(headers, serializedKey(field), String(value));
     }
   }
 
   if (Array.isArray(request.accept) && request.accept.length > 0) {
-    headers.accept = request.accept.join(', ');
+    setHeader(headers, 'accept', request.accept.join(', '));
   }
 
   let bodyText;
@@ -101,11 +101,11 @@ function buildHeadersAndBody(request, method, fields, fieldState) {
     const bodyContext = {};
     bodyText = buildBody(request, fields, fieldState, bodyContext);
     if (bodyText != null && request.contentType) {
-      headers['content-type'] = request.contentType;
+      setHeader(headers, 'content-type', request.contentType);
     } else if (bodyText != null && !hasHeader(headers, 'content-type')) {
       const inferred = inferContentType(request, bodyContext);
       if (inferred) {
-        headers['content-type'] = inferred;
+        setHeader(headers, 'content-type', inferred);
       }
     }
     if (bodyText != null && bodyContext.boundary) {
@@ -324,6 +324,18 @@ function joinUrl(baseUrl, url) {
     return right;
   }
   return left.replace(/\/+$/, '') + '/' + right.replace(/^\/+/, '');
+}
+
+// Header names are case-insensitive, so two entries differing only in case are
+// a single header on the wire: curl keeps the last one, fetch joins them with a
+// comma. Keep one entry per name -- reusing the casing already stored, so an
+// operator-typed `Content-Type` stays as typed -- and let the later write win.
+// Without this, a declared request.contentType next to a differently-cased
+// header field would leave a second content-type behind advertising the
+// pre-escalation boundary, which forceMultipartBoundary never sees.
+function setHeader(headers, name, value) {
+  const existing = Object.keys(headers).find((key) => key.toLowerCase() === name.toLowerCase());
+  headers[existing == null ? name : existing] = value;
 }
 
 function hasHeader(headers, name) {

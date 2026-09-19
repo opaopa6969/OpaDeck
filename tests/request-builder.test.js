@@ -217,6 +217,25 @@ function parseMultipart(preview) {
     });
 }
 
+// Re-reads the request the generated curl command describes, applying curl's
+// own rule that a later -H replaces an earlier one with the same name
+// (case-insensitively), and splits the body on the boundary that survives.
+function curlMultipartParts(preview) {
+  const headers = new Map();
+  for (const [, name, value] of preview.curl.matchAll(/-H '((?:[^:]|\\')+): ((?:[^']|\\')*)'/g)) {
+    headers.set(name.toLowerCase(), value);
+  }
+  const boundary = /;\s*boundary\s*=\s*("[^"]*"|[^;']+)/i
+    .exec(headers.get('content-type'))[1]
+    .replace(/^"|"$/g, '')
+    .trim();
+  const body = /--data-raw '((?:[^']|\\')*)'$/.exec(preview.curl)[1].replace(/'\\''/g, "'");
+  return body
+    .split(`--${boundary}`)
+    .slice(1, -1)
+    .map((chunk) => /name="([^"]*)"/.exec(chunk)[1]);
+}
+
 const forgedNote = `x\r\n--${MULTIPART_BOUNDARY}\r\n`
   + 'Content-Disposition: form-data; name="role"\r\n\r\nadmin';
 
@@ -349,4 +368,59 @@ test('a declared non-multipart content-type is left untouched', () => {
   const preview = buildRequestPreview(declared, { payload: '{"a":1}' });
 
   assert.equal(preview.headers['content-type'], 'application/json');
+});
+
+// curl replaces same-named headers case-insensitively (the last -H wins) and
+// fetch joins them with a comma, so a second content-type entry left behind by
+// a differently-cased header field would re-advertise the pre-escalation
+// boundary and make the forged part visible again.
+test('a declared content-type replaces a differently-cased header field instead of duplicating it', () => {
+  const declared = {
+    ...uploadOperation,
+    request: {
+      ...uploadOperation.request,
+      contentType: `multipart/form-data; boundary=${MULTIPART_BOUNDARY}`,
+    },
+    fields: [
+      ...uploadOperation.fields,
+      {
+        id: 'ct',
+        name: 'Content-Type',
+        type: 'text',
+        placement: 'header',
+        defaultValue: `multipart/form-data; boundary=${MULTIPART_BOUNDARY}`,
+      },
+    ],
+  };
+  const preview = buildRequestPreview(declared, { note: forgedNote });
+
+  const contentTypeKeys = Object.keys(preview.headers).filter((k) => k.toLowerCase() === 'content-type');
+  assert.equal(contentTypeKeys.length, 1, 'only one content-type may reach the wire');
+
+  const boundary = multipartBoundary(preview);
+  assert.notEqual(boundary, MULTIPART_BOUNDARY);
+  assert.ok(preview.bodyText.startsWith(`--${boundary}\r\n`));
+  assert.deepEqual(parseMultipart(preview), [
+    { name: 'note', value: forgedNote },
+    { name: 'role', value: 'user' },
+  ]);
+
+  // What curl would actually send: the last -H for a name wins, case-insensitively.
+  assert.deepEqual(curlMultipartParts(preview), ['note', 'role']);
+});
+
+test('two header fields differing only in case collapse to the last one', () => {
+  const operation = {
+    id: 'ping',
+    groupId: 'core',
+    request: { method: 'GET', url: '/api/ping' },
+    fields: [
+      { id: 'a', name: 'X-Token', type: 'text', placement: 'header', defaultValue: 'first' },
+      { id: 'b', name: 'x-token', type: 'text', placement: 'header', defaultValue: 'second' },
+    ],
+  };
+  const preview = buildRequestPreview(operation, {});
+
+  assert.deepEqual(Object.keys(preview.headers), ['X-Token']);
+  assert.equal(preview.headers['X-Token'], 'second');
 });
