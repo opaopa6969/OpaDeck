@@ -155,6 +155,11 @@ interface Scheduler {
 
 - `after` と `every` があれば help/tour や polling はかなり足りる
 - `frame` は optional だが SVG/map/animation 系で有効
+- `after` の `delayMs` は有限かつ 0 以上、`every` の `periodMs` は有限かつ
+  正の数である必要があり、それ以外は `RangeError` を投げる。`every` が
+  0・非有限値を拒否するのは、同じ仮想時刻で再登録され続けるタスクが
+  `now` を進められず、manual test clock の `advanceBy`/`advanceTo` を
+  ハングさせてしまう（実クロックでもビジーループになる）ため。
 
 ## 4. Sync domain: 後からならあり
 

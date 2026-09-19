@@ -35,6 +35,27 @@ test('manual clock and scheduler drive delayed work deterministically', () => {
   assert.deepEqual(seen, [['after', 25], ['every', 30], ['every', 50]]);
 });
 
+test('scheduler.every rejects a zero or non-finite period instead of hanging the clock', () => {
+  const clock = createManualClock({ startAt: 0 });
+  const scheduler = createScheduler({ clock });
+  assert.throws(() => scheduler.every(0, () => {}), RangeError);
+  assert.throws(() => scheduler.every(-5, () => {}), RangeError);
+  assert.throws(() => scheduler.every(NaN, () => {}), RangeError);
+  assert.throws(() => scheduler.every(Infinity, () => {}), RangeError);
+  assert.equal(clock.pendingCount(), 0);
+});
+
+test('scheduler.after rejects a negative or non-finite delay', () => {
+  const clock = createManualClock({ startAt: 0 });
+  const scheduler = createScheduler({ clock });
+  assert.throws(() => scheduler.after(-1, () => {}), RangeError);
+  assert.throws(() => scheduler.after(NaN, () => {}), RangeError);
+  const seen = [];
+  scheduler.after(0, () => seen.push('immediate'));
+  clock.advanceBy(0);
+  assert.deepEqual(seen, ['immediate']);
+});
+
 test('selection store emits only on actual changes', () => {
   const bus = createRuntimeBus();
   const store = createSelectionStore({ bus });
