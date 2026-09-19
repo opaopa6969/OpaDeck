@@ -124,6 +124,26 @@ test('inlineSvg strips javascript: URLs from href/xlink:href (XSS hardening)', (
   assert.equal(use.hasAttribute('xlink:href'), false, 'javascript: xlink:href removed');
 });
 
+test('inlineSvg strips SMIL elements that can mutate attributes at runtime', () => {
+  const document = createFakeDocument();
+  const renderer = resultRenderer('inlineSvg');
+  const payload = '<svg>'
+    + '<a id="target" href="https://example.com/safe"><circle r="2"/></a>'
+    + '<animate href="#target" attributeName="href" values="javascript:alert(1)"/>'
+    + '<set href="#target" attributeName="xlink:href" to="javascript:alert(2)"/>'
+    + '<animateTransform href="#target" attributeName="transform" type="scale"/>'
+    + '<animateMotion href="#target" path="M0 0"/>'
+    + '</svg>';
+  const el = renderer.render({ document, bodyText: payload });
+  const svg = el.querySelector('svg');
+  assert.ok(svg, 'svg present after sanitization');
+  assert.equal(svg.querySelectorAll('animate').length, 0, 'animate removed');
+  assert.equal(svg.querySelectorAll('set').length, 0, 'set removed');
+  assert.equal(svg.querySelectorAll('animateTransform').length, 0, 'animateTransform removed');
+  assert.equal(svg.querySelectorAll('animateMotion').length, 0, 'animateMotion removed');
+  assert.equal(svg.querySelector('a').getAttribute('href'), 'https://example.com/safe', 'static safe href preserved');
+});
+
 test('timeSeries draws a polyline and point markers from rows', () => {
   const document = createFakeDocument();
   const el = renderTimeSeries({

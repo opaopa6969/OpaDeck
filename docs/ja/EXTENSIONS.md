@@ -136,6 +136,12 @@ core は値を解釈せず、renderer は登録した `id`(または `canRender`
   geo companion `validateGeoScene` が担い、core は関与しない。
 - custom stats view
 
+組み込みの `inlineSvg` renderer は挿入前に `script`、`foreignObject`、SMIL
+animation 要素（`animate`、`set`、`animateTransform`、`animateMotion`）、`on*`
+属性、`href` / `xlink:href` の `javascript:` URL を除去する。この限定的な
+sanitizer は SVG 全体の allow-list ではない。より厳しい content policy が
+必要な host は custom renderer を登録する。
+
 ## 3. Panel renderer registry
 
 役割:
