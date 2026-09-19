@@ -163,6 +163,34 @@ test('validateApp stays purely structural unless registries are passed', () => {
   assert.ok(!core.some((code) => CAPABILITY_CODES.includes(code)));
 });
 
+test('capability validation preserves existing structural diagnostics', () => {
+  const app = sampleApp();
+  app.groups[0].operations[0].fields[1].source.dataSourceId = 'missing';
+  app.groups[0].operations[0].result.renderer = 'nope';
+
+  const structural = validateApp(app);
+  assert.ok(structural.some((p) => p.code === 'field.source.dataSource.missing'));
+  const combined = validateApp(app, { registries: builtinRegistries() });
+  assert.deepEqual(combined.filter((p) => !CAPABILITY_CODES.includes(p.code)), structural);
+  assert.ok(combined.some((p) => p.code === 'result.renderer.unknown'));
+});
+
+test('custom field renderers are matched by supports(field), not by renderer id', () => {
+  const app = sampleApp();
+  app.groups[0].operations[0].fields.push({
+    id: 'when', name: 'when', type: 'datetime', placement: 'query', timezone: 'UTC',
+  });
+  const registries = builtinRegistries();
+  assert.ok(validateApp(app, { registries }).some((p) => p.code === 'field.type.unsupported'));
+
+  registries.fieldRenderers.register({
+    id: 'utc-date-picker',
+    supports: (field) => field.type === 'datetime' && field.timezone === 'UTC',
+    render: () => { throw new Error('Validation must not render a field.'); },
+  });
+  assert.deepEqual(validateApp(app, { registries }), []);
+});
+
 test('compileOpsui forwards registries so DSL diagnostics include capability problems', () => {
   const source = `
 app demo v1 {
