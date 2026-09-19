@@ -90,7 +90,7 @@ test('execution store records lifecycle and history', () => {
   });
   assert.equal(current.status, 'running');
   clock.advanceBy(25);
-  const done = store.succeed({
+  const done = store.succeed(current.id, {
     status: 200,
     statusText: 'OK',
     contentType: 'application/json',
@@ -113,8 +113,8 @@ test('execution store accumulates runs and removes one by id', () => {
 
   const ids = [];
   for (const op of ['a', 'b', 'c']) {
-    store.begin({ operationFqid: `g.${op}`, requestPreview: { method: 'GET', url: `/${op}` } });
-    ids.push(store.succeed({ status: 200, bodyText: '{}' }).id);
+    const started = store.begin({ operationFqid: `g.${op}`, requestPreview: { method: 'GET', url: `/${op}` } });
+    ids.push(store.succeed(started.id, { status: 200, bodyText: '{}' }).id);
   }
   assert.equal(store.history().length, 3); // runs accumulate for comparison
 
@@ -124,4 +124,50 @@ test('execution store accumulates runs and removes one by id', () => {
   assert.equal(store.history().length, 2);
   assert.ok(!store.history().some((record) => record.id === target));
   assert.deepEqual(removed, [target]);
+});
+
+test('execution store tracks two overlapping executions independently', () => {
+  const clock = createManualClock({ startAt: 0 });
+  const bus = createRuntimeBus();
+  const store = createExecutionStore({ clock, bus });
+  const kinds = [];
+  bus.subscribe('execution.started', (event) => kinds.push([event.kind, event.record.id]));
+  bus.subscribe('execution.success', (event) => kinds.push([event.kind, event.record.id]));
+
+  const a = store.begin({ operationFqid: 'g.a', requestPreview: { method: 'GET', url: '/a' } });
+  const b = store.begin({ operationFqid: 'g.b', requestPreview: { method: 'GET', url: '/b' } });
+  assert.notEqual(a.id, b.id);
+
+  // Completion order is reversed from start order: A finishes before B.
+  const doneA = store.succeed(a.id, { status: 200, bodyText: 'response-A' });
+  assert.equal(doneA.id, a.id);
+  assert.equal(doneA.operationFqid, 'g.a');
+  assert.equal(doneA.response.bodyText, 'response-A');
+
+  const doneB = store.succeed(b.id, { status: 200, bodyText: 'response-B' });
+  assert.equal(doneB.id, b.id);
+  assert.equal(doneB.operationFqid, 'g.b');
+  assert.equal(doneB.response.bodyText, 'response-B');
+
+  const history = store.history();
+  assert.equal(history.length, 2);
+  assert.deepEqual(history.map((record) => record.operationFqid).sort(), ['g.a', 'g.b']);
+  assert.deepEqual(kinds, [
+    ['execution.started', a.id],
+    ['execution.started', b.id],
+    ['execution.success', a.id],
+    ['execution.success', b.id],
+  ]);
+});
+
+test('finalizing an unknown or already-terminated execution id is a no-op', () => {
+  const clock = createManualClock({ startAt: 0 });
+  const store = createExecutionStore({ clock });
+  assert.equal(store.succeed('exec_missing', { status: 200 }), null);
+
+  const started = store.begin({ operationFqid: 'g.a', requestPreview: { method: 'GET', url: '/a' } });
+  const first = store.succeed(started.id, { status: 200 });
+  assert.equal(first.status, 'success');
+  assert.equal(store.succeed(started.id, { status: 200 }), null, 'already-terminated id does not overwrite history');
+  assert.equal(store.history().length, 1);
 });

@@ -479,7 +479,7 @@ function summarizeEvent(event) {
 
 function simulateExecution() {
   const current = selection.get().operationId || FEATURES[0].id;
-  executions.begin({
+  const handle = executions.begin({
     operationFqid: `showcase.${current}`,
     requestPreview: {
       method: 'POST',
@@ -489,7 +489,7 @@ function simulateExecution() {
     },
   });
   scheduler.after(640, () => {
-    executions.succeed({
+    executions.succeed(handle.id, {
       status: 200,
       statusText: 'OK',
       contentType: 'application/json',

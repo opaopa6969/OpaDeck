@@ -42,15 +42,15 @@ export function createHttpExecutor(options = {}) {
       const preview = buildRequestPreview(operation, fieldState, {
         baseUrl: callOptions.baseUrl !== undefined ? callOptions.baseUrl : defaultBaseUrl,
       });
-      executions.begin({
+      const handle = executions.begin({
         operationFqid: operationFqid(operation),
         requestPreview: preview,
       });
-      return runRequest(preview, operation, callOptions);
+      return runRequest(preview, operation, callOptions, handle.id);
     },
   };
 
-  async function runRequest(preview, operation, callOptions) {
+  async function runRequest(preview, operation, callOptions, executionId) {
     const controller = AbortControllerImpl ? new AbortControllerImpl() : null;
     const state = { timedOut: false, cancelled: false };
 
@@ -73,9 +73,9 @@ export function createHttpExecutor(options = {}) {
       });
       const snapshot = await readResponse(response, startedAt, operation);
       if (response.ok || response.status === 304) {
-        return executions.succeed(snapshot);
+        return executions.succeed(executionId, snapshot);
       }
-      return executions.fail(snapshot, {
+      return executions.fail(executionId, snapshot, {
         problems: createProblem(
           'execution.http.status',
           'error',
@@ -84,20 +84,20 @@ export function createHttpExecutor(options = {}) {
       });
     } catch (error) {
       if (state.timedOut) {
-        return executions.timeout(createProblem(
+        return executions.timeout(executionId, createProblem(
           'execution.timeout',
           'error',
           `Request timed out after ${timeoutMs}ms.`
         ));
       }
       if (state.cancelled) {
-        return executions.cancel(createProblem(
+        return executions.cancel(executionId, createProblem(
           'execution.cancelled',
           'info',
           'Request was cancelled.'
         ));
       }
-      return executions.fail(null, {
+      return executions.fail(executionId, null, {
         problems: createProblem(
           'execution.network',
           'error',

@@ -225,6 +225,44 @@ test('timeout remains active while the response body is being read', async () =>
   assert.ok(record.problems.some((p) => p.code === 'execution.timeout'));
 });
 
+test('two overlapping execute() calls each keep their own record regardless of completion order', async () => {
+  const clock = createManualClock({ startAt: 0 });
+  const bus = createRuntimeBus();
+  const executions = createExecutionStore({ clock, bus });
+  const resolvers = {};
+  const executor = createHttpExecutor({
+    executions,
+    clock,
+    AbortController: globalThis.AbortController,
+    fetch: async (url) => new Promise((resolve) => {
+      resolvers[url] = () => resolve(fakeResponse({ status: 200, statusText: 'OK', contentType: 'application/json', bodyText: `response-for-${url}` }));
+    }),
+  });
+
+  const opA = { ...GET_OP, id: 'a' };
+  const opB = { ...GET_OP, id: 'b' };
+  const promiseA = executor.execute(opA, { q: 'a' });
+  const promiseB = executor.execute(opB, { q: 'b' });
+
+  assert.equal(executions.history().length, 0, 'nothing has finished yet');
+
+  // Complete A first, then B, and confirm neither result clobbers the other.
+  resolvers['/api/index/search?query=a']();
+  const recordA = await promiseA;
+  resolvers['/api/index/search?query=b']();
+  const recordB = await promiseB;
+
+  assert.equal(recordA.operationFqid, 'index.a');
+  assert.equal(recordA.response.bodyText, 'response-for-/api/index/search?query=a');
+  assert.equal(recordB.operationFqid, 'index.b');
+  assert.equal(recordB.response.bodyText, 'response-for-/api/index/search?query=b');
+  assert.notEqual(recordA.id, recordB.id);
+
+  const history = executions.history();
+  assert.equal(history.length, 2);
+  assert.deepEqual(history.map((record) => record.operationFqid).sort(), ['index.a', 'index.b']);
+});
+
 test('execute maps an external cancel signal to a cancelled record', async () => {
   const clock = createManualClock({ startAt: 0 });
   const executions = createExecutionStore({ clock });
