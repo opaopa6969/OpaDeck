@@ -107,3 +107,21 @@ with a located `dsl.parse.error`, mirroring `expectBoolean` at
 `src/dsl/opsui.js:743-752`). A related, *separate* gap is that layout `sizes`
 (`src/dsl/opsui.js:507`) uses the same `Number(word)` pattern and also stores
 `NaN` without error — file a follow-up if that is worth catching too.
+
+## Status
+
+Done on `main` (GitHub #16). Resolving commit: `dc8461e` ("fix: resolve
+glm-hunt issues 016/017/018").
+
+- implementation: `src/dsl/opsui.js:757` adds `expectNumber()` (mirroring
+  `expectBoolean()`), which rejects a non-numeric token with a located
+  `dsl.parse.error`; `:356` uses it for `request.timeoutMs = this.expectNumber()`
+  in `parseRequest`
+- a non-numeric `timeoutMs` (e.g. `timeoutMs abc`) now fails to compile with a
+  located parse error instead of silently producing `NaN`
+- a valid numeric `timeoutMs` (e.g. `timeoutMs 500`) still compiles and behaves
+  as before
+- tests: `tests/opsui.test.js:128` "rejects a non-numeric timeoutMs token as a
+  parse error"
+- the noted follow-up (layout `sizes` has the same `Number(word)` pattern) is
+  intentionally left out of scope, as originally decided

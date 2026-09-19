@@ -93,3 +93,18 @@ The fix is one line in `runRequest` (treat `304` — and decide on the broader
 should match the Fetch standard so this class of bug is caught going forward;
 but changing the shared `fakeResponse` affects every existing test, so a
 dedicated fake for the `304` case is the lower-risk path.
+
+## Status
+
+Done on `main` (GitHub #14). Resolving commit: `dc8461e` ("fix: resolve
+glm-hunt issues 016/017/018").
+
+- implementation: `src/runtime/http-executor.js:76` —
+  `if (response.ok || response.status === 304)` finalizes a `304` as success
+  before the `response.ok` failure branch; other 3xx codes are unchanged
+  (out of scope, as noted above)
+- tests: `tests/http-executor.test.js:131` "execute treats a 304 Not Modified
+  response as success", using a fake response with `ok: false, status: 304`
+  matching the real Fetch standard
+- existing 2xx success and 4xx/5xx error behavior is unchanged (no other
+  branches touched)
