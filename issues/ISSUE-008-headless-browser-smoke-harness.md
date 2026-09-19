@@ -49,3 +49,20 @@ command, not by hand.
 This issue is about confidence, not product scope. Keep the browser dependency
 out of the default `npm test` so contributors without it can still run the unit
 suite.
+
+## Status
+
+Done on `main` (GitHub #8). Resolving commit: `cbf6f17` ("test: automate
+showcase browser smoke coverage").
+
+- implementation: `scripts/browser-smoke.mjs` — Playwright-driven harness that
+  serves the showcase via `scripts/serve.py` and asserts the manual checklist
+  (feature cards, Geo Scene Japan map, Simulate Execution, Validate Sample App,
+  Start Tour)
+- wiring: `package.json` `"test:browser": "node scripts/browser-smoke.mjs"`
+  (kept separate from `"test"`, which stays dependency-free), `playwright` in
+  `devDependencies`
+- documentation: `README.md` documents `npm run test:browser` next to
+  `npm test`
+- `issues/README.md` still listed this under "Open — follow-up work"; this
+  entry reconciles that.

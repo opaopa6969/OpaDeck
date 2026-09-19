@@ -127,3 +127,18 @@ The fix mirrors the existing `started` guard: add
 (or a single guard at the top of `enter()`). The existing tour test
 (`tests/tour.test.js:41-84`) only calls `next()` past the last step to trigger
 `finish()`; it never calls `next()` **after** `finish()`, so this slips through.
+
+## Status
+
+Done on `main` (GitHub #15). Resolving commit: `dc8461e` ("fix: resolve
+glm-hunt issues 016/017/018").
+
+- implementation: `src/tour/runtime.js:96` adds a single
+  `if (finished) return Promise.resolve();` guard at the top of `enter()`,
+  covering `next()`, `prev()`, and `goTo()` (all three route through `enter()`)
+- tests: `tests/tour.test.js:86` "next/prev/goTo are no-ops after finish()"
+  asserts `player.index` is unchanged, no `tour.stepChanged` publishes after
+  `tour.finished` (line 121), and `overlay.renderStep` is not called
+  post-`finish` (line 122)
+- the pre-finish behavior (`start()`/`next()`/`prev()`/`goTo()` before
+  `finish()`) is unchanged

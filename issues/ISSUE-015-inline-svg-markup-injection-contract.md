@@ -82,3 +82,24 @@ valid resolutions; the maintainer picks one (or both):
 
 Low severity in current usage, but the renderer is a public extension point, so
 the contract should not be implicit.
+
+## Status
+
+Done on `main` (Option B: sanitize). Resolving commit: `ba33254` ("fix(security):
+inlineSvg renderer が innerHTML で未サニタイズの SVG を注入する XSS を修正").
+
+- implementation: `src/renderers/result-renderers.js` — the `inlineSvg`
+  renderer (around line 66) now parses the response with `DOMParser` as
+  `image/svg+xml`, then `sanitizeSvgElement` (line 225) recursively strips
+  `<script>`/`<foreignObject>` (`UNSAFE_SVG_TAGS`, line 199) and removes all
+  `on*` event-handler attributes (line 260) before the sanitized `<svg>` is
+  appended to the DOM
+- test-only support: `tests/helpers/fake-dom.js` gained a `DOMParser`-equivalent
+  (`parseFromHTML`) and `removeAttribute` so the sanitizer is exercised without
+  a real browser
+- tests: `tests/renderers-extra.test.js` — "inlineSvg injects sanitized svg
+  markup..." (line 66), "...strips script elements and on* event attributes
+  (XSS hardening)" (line 79), "...strips foreignObject (HTML injection vector)"
+  (line 95); all passing
+- the happy-path (real trusted SVG renders) still passes per the existing
+  "matches image/svg+xml" assertion
