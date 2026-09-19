@@ -60,9 +60,10 @@ export function createBuiltinResultRenderers() {
     },
     {
       // Inline SVG returned by the operation, injected as markup. Auto-matches
-      // image/svg+xml. The markup is parsed and sanitized (script elements and
-      // inline event-handler attributes are stripped) before insertion, so an
-      // untrusted response cannot run script via the SVG payload.
+      // image/svg+xml. The markup is parsed and sanitized (script elements,
+      // inline event-handler attributes, and javascript: URLs in href /
+      // xlink:href are stripped) before insertion, so an untrusted response
+      // cannot run script via the SVG payload.
       id: 'inlineSvg',
       canRender: (ctx) => ctx && typeof ctx.contentType === 'string' && ctx.contentType.includes('svg'),
       render: (ctx) => {
@@ -198,6 +199,17 @@ function tryParse(text) {
 
 const UNSAFE_SVG_TAGS = new Set(['script', 'foreignobject']);
 const EVENT_ATTR = /^on/i;
+const URL_ATTR = /^(?:href|xlink:href)$/i;
+
+function isUnsafeUrl(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  // Strip whitespace/control characters attackers use to split the scheme
+  // (e.g. "java\tscript:") before checking it.
+  const normalized = value.replace(/[\s\u0000-\u001f]+/g, '').toLowerCase();
+  return normalized.startsWith('javascript:');
+}
 
 function parseAndSanitizeSvg(doc, markup) {
   const parser = typeof doc.parseFromHTML === 'function'
@@ -257,6 +269,8 @@ function sanitizeSvgElement(el) {
   }
   for (const name of attrNames) {
     if (EVENT_ATTR.test(name)) {
+      el.removeAttribute(name);
+    } else if (URL_ATTR.test(name) && isUnsafeUrl(el.getAttribute(name))) {
       el.removeAttribute(name);
     }
   }
