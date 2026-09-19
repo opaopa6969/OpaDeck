@@ -226,6 +226,22 @@ edge であって、core の一部ではない(`EXTENSIONS.md` 参照)。
 `options` の意味は各 renderer が定義する。たとえば geoScene renderer は `GeoSceneDefinition`
 (baseMap / layers …)を期待し、その検証は geo companion(`validateGeoScene`)が担う。core は関与しない。
 
+もう一つの `options` 消費者が `createWorkbench`(`src/app/workbench.js`,
+`src/renderers/panel-renderers.js`)が使う `resultStack` panel renderer。
+`options.accumulate === false` を読み取り、実行履歴を全件表示する代わりに最新
+1 件だけに絞る。これは core の概念ではなく host/renderer 側の慣習であり、
+`options` は `src/core/` にとって不透明なまま — `{ accumulate: false }` が
+意味を持つのは `resultStack` がそう解釈すると決めているから。現時点では
+これを設定する `.opsui` DSL 構文は無い。`App` を programmatically に組み立てる
+ときに `ResultViewDefinition` へ直接設定する(`tests/workbench.test.js` 参照)。
+
+`options` とは独立に、`createWorkbench` は record ごとの dismiss 操作も配線している。
+各結果カードは `ctx.onDismiss(record.id)` を呼び、host はそれを execution store
+(`src/runtime/execution-store.js`)の `executions.remove(id)` にマップする。
+dismiss はその record を store の履歴から完全に削除する(`execution.removed` を
+emit する)。`options.accumulate` とは無関係で、accumulate は *残っている* record
+のうち何件を一度に表示するかだけを制限する。
+
 ## Problem contract
 
 problem は validation、execution、help、rendering のあいだで共有される contract。

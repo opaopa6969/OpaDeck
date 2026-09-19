@@ -231,6 +231,24 @@ The meaning of `options` is defined by each renderer. For example, the geoScene
 renderer expects a `GeoSceneDefinition` (baseMap / layers / …), and that shape is
 validated by the geo companion (`validateGeoScene`), not by the core.
 
+Another consumer of `options` is the `resultStack` panel renderer used by
+`createWorkbench` (`src/app/workbench.js`, `src/renderers/panel-renderers.js`):
+it reads `options.accumulate === false` to cap the visible result list at the
+latest record instead of showing full run history. This is a host/renderer
+convention, not a core concept — `options` stays opaque to `src/core/`, and
+`{ accumulate: false }` is only meaningful because `resultStack` chooses to
+interpret it that way. There is currently no `.opsui` DSL syntax for setting
+it; it is set directly on the `ResultViewDefinition` when building an `App`
+programmatically (see `tests/workbench.test.js`).
+
+Independent of `options`, `createWorkbench` also wires a per-record dismiss
+control: each result card calls `ctx.onDismiss(record.id)`, which the host
+maps to `executions.remove(id)` on the execution store
+(`src/runtime/execution-store.js`). Dismissing removes that record from the
+store's history entirely (it emits `execution.removed`); it is not related to
+`options.accumulate`, which only limits how many of the *remaining* records
+are rendered at once.
+
 ## Problem contract
 
 Problems are a shared contract between validation, execution, help, and rendering.

@@ -32,6 +32,10 @@ parser understands them, but they describe companion layers, not core meaning:
 - `tour`
 - `layout`
 
+`fieldset` (and the operation-level `include` it pairs with) is neither: it is
+pure compile-time DSL sugar that never reaches the compiled model — see
+"Field fragments" below.
+
 ## Example
 
 ```opsui
@@ -73,6 +77,54 @@ app VacantOps v1 {
   }
 }
 ```
+
+## Field fragments (`fieldset` + `include`)
+
+`fieldset` is compile-time-only sugar for sharing a group of fields across
+operations. It is not part of the compiled model: `include` splices deep
+copies of the fragment's fields into the including operation's `fields`, so
+the core only ever sees plain fields — it never learns a fieldset existed.
+
+`fieldset` blocks are declared at app top level, alongside `datasource` and
+`group`, and must appear before any operation that `include`s them:
+
+```opsui
+app VacantOps v1 {
+  fieldset addressSep {
+    field zip : text in query {
+      label "Zip"
+    }
+    field pref : text in query {
+      label "Prefecture"
+    }
+  }
+
+  group index {
+    operation search {
+      title "Search"
+      request {
+        method GET
+        url "./api/search"
+      }
+      include addressSep
+      result {
+        renderer auto
+      }
+    }
+  }
+}
+```
+
+Rules:
+
+- `include <id>` may only appear inside an `operation` block, alongside
+  `field`.
+- Referencing an undeclared fieldset is a located `dsl.parse.error`
+  ("Unknown fieldset '<id>'. Declare it before the operation that includes
+  it.").
+- Including the same field id twice (whether from two includes, or an
+  include plus a literal `field`) is caught by the existing
+  `field.id.duplicate` check — fieldsets do not get a pass on id uniqueness.
 
 ## Layout primitives
 
