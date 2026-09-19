@@ -29,6 +29,7 @@ commit, the source files, and the tests).
 - [x] [ISSUE-020: Insert Dynamic Query Parameters Before URL Fragments](ISSUE-020-query-before-url-fragment.md)
 - [x] [ISSUE-021: Multipart Body Values Can Inject Extra Form-Data Parts](ISSUE-021-multipart-part-injection.md)
 - [x] [ISSUE-022: `current()` Drops An Earlier Still-Running Execution Once A Later One Finishes](ISSUE-022-execution-store-current-overlapping-completion-order.md)
+- [x] [ISSUE-023: Tour Runtime Throws On A Null/Non-Object Step](ISSUE-023-tour-runtime-null-step.md)
 
 ## Open — follow-up work
 

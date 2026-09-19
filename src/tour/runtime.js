@@ -1,5 +1,6 @@
 import { createTourCommandHandlerRegistry } from './command-handler-registry.js';
 import { createDefaultTourCommandHandlers } from './handlers.js';
+import { isPlainObject } from '../core/ids.js';
 
 // The tour runtime sequences a TourSpec loaded from HelpModel.tours. It runs each
 // step's commands through the handler registry, resolves the spotlight target,
@@ -95,7 +96,11 @@ export function createTourRuntime(options = {}) {
     async function enter(target) {
       if (finished) return Promise.resolve();
       index = clamp(target, 0, steps.length - 1);
-      const step = steps[index];
+      const rawStep = steps[index];
+      // A null/non-object step is a malformed-but-already-diagnosed shape (see
+      // help/validate-help.js's tour-step.invalid check): treat it as an empty
+      // step instead of dereferencing it, so play()/next()/prev() stay usable.
+      const step = isPlainObject(rawStep) ? rawStep : {};
       let spotlight = null;
       for (const command of step.commands || []) {
         const result = await handlers.runCommand(command, context);

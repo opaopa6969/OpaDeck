@@ -83,6 +83,28 @@ test('runtime plays steps, updates selection, resolves targets, and emits events
   assert.deepEqual(resolved, ['[data-op-id="index.rebuild"]', '[data-panel-id="nav"]']);
 });
 
+test('a null/non-object step is treated as empty instead of throwing', async () => {
+  const bus = createRuntimeBus();
+  const events = [];
+  bus.subscribe('tour.stepChanged', (event) => events.push(event.step));
+  const runtime = createTourRuntime({ bus, handlers: defaultRegistry() });
+
+  const tour = {
+    id: 'broken',
+    title: 'Broken',
+    steps: [null, { id: 's2', title: 'Panel', commands: [] }],
+  };
+
+  const player = runtime.play(tour);
+  await Promise.resolve();
+  assert.equal(player.index, 0);
+  assert.deepEqual(events[0], { id: undefined, title: undefined, narration: undefined, index: 0 });
+
+  await player.next();
+  assert.equal(player.index, 1);
+  assert.equal(events[1].id, 's2');
+});
+
 test('next/prev/goTo are no-ops after finish()', async () => {
   const bus = createRuntimeBus();
   const events = [];
