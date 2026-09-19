@@ -92,3 +92,22 @@ test('a split must have exactly two children', () => {
   assert.equal(app, null);
   assert.match(problems[0].message, /exactly 2 children/);
 });
+
+test('split sizes must be finite numbers', () => {
+  for (const sizes of ['wide 2', '1 narrow', 'Infinity 2']) {
+    const source = `app Demo v1 {
+  layout l {
+    split root row {
+      sizes ${sizes}
+      panel a x {}
+      panel b y {}
+    }
+  }
+}`;
+    const { app, problems } = compileOpsui(source);
+    assert.equal(app, null, sizes);
+    assert.equal(problems[0].code, 'dsl.parse.error', sizes);
+    assert.match(problems[0].message, /Expected a number/, sizes);
+    assert.match(problems[0].detail, /line 4/, sizes);
+  }
+});

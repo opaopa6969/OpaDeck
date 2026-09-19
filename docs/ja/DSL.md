@@ -77,7 +77,8 @@ app VacantOps v1 {
 
 ## layout primitive
 
-- `split`
+- `split <id> <row|column> { ... }` — 子ノードは厳密に2個。省略可能な
+  `sizes <a> <b>` には有限の数値ウェイトを2個指定する
 - `stack`
 - `tabs`
 - `panel`
@@ -87,4 +88,3 @@ app VacantOps v1 {
 `operations` が正本。  
 `layout` は見せ方だけを変える。  
 `help` は理解だけを補助する。
-
