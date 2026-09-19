@@ -17,7 +17,16 @@ export function validateLayouts(app) {
   const operationIds = collectOperationIds(app);
   const panelIds = new Set();
 
-  for (const layout of layouts) {
+  layouts.forEach((layout, layoutIndex) => {
+    if (!isPlainObject(layout)) {
+      problems.push(createProblem(
+        'layout.invalid',
+        'error',
+        `Layout at index ${layoutIndex} must be an object.`,
+        { target: { kind: 'layout', layoutIndex } }
+      ));
+      return;
+    }
     traverseRenderNode(layout.root, (node) => {
       if (node && typeof node.id === 'string') {
         if (panelIds.has(node.id)) {
@@ -34,7 +43,7 @@ export function validateLayouts(app) {
         validatePanelBinding(node, groupIds, operationIds, problems);
       }
     });
-  }
+  });
   return problems;
 }
 
