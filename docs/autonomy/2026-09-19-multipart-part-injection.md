@@ -191,3 +191,75 @@ console.log(p.bodyText.split('--'+b).slice(1,-1).map(c=>/name=\"([^\"]*)\"/.exec
   での検証である点は反復 1 から変わらない。
 - merge と #36 close は Judge の accept 後に Finalizer のみが行う。反転方法は
   反復 1 と同じ（merge commit の `git revert -m 1`、#36 reopen）。
+
+## 反復 3/3（Judge 差し戻しへの対応）
+
+### 観測事実
+
+独立 Judge が反復 2 の残存経路を再現した。`request.contentType` と
+**大小が異なる `Content-Type` header field を同時に持つ** operation では、
+`buildHeadersAndBody` が `headers['content-type']` を無条件に追加するため
+content-type が 2 本になる。`forceMultipartBoundary` は最初に見つけた 1 本しか
+書き換えないので、もう 1 本は**エスカレーション前の境界を advertise したまま**残る:
+
+```
+Content-Type: multipart/form-data; boundary=----...gW1   ← body と一致
+content-type: multipart/form-data; boundary=----...gW    ← 古い境界
+```
+
+curl は同名 header を大小を無視して**後勝ちで置換**するため、生成された curl は
+`...gW` を送り、`role=admin` の注入が成立する。fetch の `Headers` は 2 値を
+カンマ連結するので境界が不定になる。
+
+### 仮説
+
+content-type だけを特別扱いするのではなく、**header の書き込み自体を
+「大小を無視して既存キーを置換する」** に変えれば、経路（`request.contentType` /
+header field / 推論 / `accept`）に関わらず重複が構造的に発生しなくなる。
+
+### 実施内容
+
+- `setHeader(headers, name, value)` を追加。大小を無視して既存キーを探し、
+  見つかればそのキーの**表記を保ったまま**値を置換する。header field ループ・
+  `accept`・`content-type`（宣言・推論の両方）をこの setter 経由にした。
+  - 表記を保つのは、operator が入力した `Content-Type` の見た目を preview と
+    curl で変えないため。既存テスト（header field 単独ケース）もこれで不変。
+  - 優先順位は従来と同じ「後の書き込みが勝つ」＝ `request.contentType` が
+    header field を上書きする。大小が一致する場合の従来挙動と同じなので、
+    大小違いのケースだけが揃った形になる（可逆・驚きが小さい）。
+  - 代案「content-type のときだけ重複を削除する」は、`accept` や任意の header
+    で同じ不整合が残るため不採用。
+- 回帰テスト 2 件を追加:
+  (1) `request.contentType` と大小違いの `Content-Type` header field が併存する
+      multipart で、content-type header が 1 本だけになり、**生成された curl を
+      curl の後勝ち規則で読み直して**分割しても注入パートが見えないこと。
+  (2) 大小だけ異なる 2 つの header field が最後の 1 本に collapse すること。
+- 英日 IMPLEMENTATION に「header 名は大小無視で 1 本」の契約を追記。
+
+### 検証結果
+
+```bash
+npm test   # 129 passed / 0 failed / 0 skipped （反復 2 は 127）
+git diff --stat origin/main -- package.json package-lock.json   # 出力なし＝依存追加なし
+```
+
+修正を一時的に戻して新テストが落ちることも確認した（fail 2 / pass 17 → fail 0 / pass 19）:
+
+```bash
+cp src/runtime/request-builder.js /tmp/rb.keep
+sed -i "s|      setHeader(headers, 'content-type', request.contentType);|      headers['content-type'] = request.contentType;|" src/runtime/request-builder.js
+sed -i "s|      setHeader(headers, serializedKey(field), String(value));|      headers[serializedKey(field)] = String(value);|" src/runtime/request-builder.js
+node --test tests/request-builder.test.js   # not ok 18, not ok 19
+cp /tmp/rb.keep src/runtime/request-builder.js
+```
+
+新テスト (1) は preview.headers ではなく **`preview.curl` を再パースして** curl が
+実際に送る header と body を復元するため、「header が 1 本」という前提自体を
+テストが仮定していない。
+
+### 次の判断・残る不確実性
+
+- 残る不確実性: 検証は実 HTTP server ではなくテスト内 parser（advertise された
+  境界で分割 / curl の後勝ち規則を適用）である点。反復 1・2 と同じ限界。
+- codex 由来の #38〜#42 は本 PR に混ぜていない。
+- merge と #36 close は Judge の accept 後に Finalizer のみが行う。

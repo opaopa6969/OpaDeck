@@ -76,6 +76,9 @@ file:
   header field で multipart の content-type を明示した場合も、その `boundary`
   パラメータを実際に使った境界へ書き換えるため、header / preview body / curl は
   常に同じ境界を指す
+- header 名は大小を無視して 1 本に保つ（後の書き込みが勝ち、既存の表記は残す）。
+  curl は同名 header を後勝ちで置換し、fetch はカンマ連結するため、大小違いの
+  重複を残すと content-type が 2 本になり片方が古い境界を advertise してしまう
 - injectable fetch による HTTP 実行、本文/NDJSON stream 読了まで有効な
   timeout/cancel、execution.* event
 - NDJSON/JSON Lines の `onProgress` による逐次受信

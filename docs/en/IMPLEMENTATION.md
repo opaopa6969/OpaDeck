@@ -79,6 +79,10 @@ Implemented:
   A multipart `content-type` that the operation declares or an operator types
   into a header field has its `boundary` parameter rewritten to the boundary the
   body actually used, so header, preview body, and curl never disagree).
+  Header names are kept unique case-insensitively (a later write replaces the
+  stored entry and keeps its casing), matching curl's last-`-H`-wins rule and
+  `fetch`'s comma-joining, so a declared `content-type` can never leave a
+  second entry behind advertising the pre-escalation boundary.
   Checkbox fields serialize with HTML semantics via
   **`field.checkedValue` / `uncheckedValue`** (unchecked omits the param instead
   of leaking the literal `"true"`/`"false"`). Generated query parameters are
