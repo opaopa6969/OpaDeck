@@ -31,6 +31,9 @@ export function validateCapabilities(app, registries = {}) {
     }
     const operations = Array.isArray(group.operations) ? group.operations : [];
     for (const operation of operations) {
+      if (!isPlainObject(operation)) {
+        continue;
+      }
       validateResultRenderer(operation, registries.resultRenderers, problems);
       validateFieldTypes(operation, registries.fieldRenderers, problems);
     }

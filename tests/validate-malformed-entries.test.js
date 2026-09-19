@@ -75,3 +75,12 @@ test('the composed validateApp (layout/help/geo/capabilities companions) never t
   const codes = validateApp(app).map((problem) => problem.code);
   assert.ok(codes.includes('group.invalid'));
 });
+
+test('validateApp with registries never throws for a non-object operation (capabilities companion)', () => {
+  const app = { id: 'a', groups: [{ id: 'g', operations: [null] }] };
+  const registries = {
+    resultRenderers: { has: () => true },
+    fieldRenderers: { match: () => true },
+  };
+  assert.doesNotThrow(() => validateApp(app, { registries }));
+});
