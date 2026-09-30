@@ -24,7 +24,8 @@ documentation. No dependency, runtime API, or data migration is needed.
 
 ## Status
 
-Done on `main` (GitHub #34, merged via PR #35, resolving commit `e279fab`).
+Implemented by `fix/issue-34-query-before-fragment`; GitHub #34 closes when the
+reviewed PR merges.
 
 - `src/runtime/request-builder.js` inserts generated query parameters before the
   fragment while preserving any static query string.

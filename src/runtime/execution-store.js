@@ -37,6 +37,7 @@ export function createExecutionStore(options = {}) {
   }
   const historyLimit = Math.max(1, Number(options.historyLimit) || 50);
   const running = new Map();
+  let lastBegunId = null;
   let history = [];
   let sequence = 0;
 
@@ -62,6 +63,7 @@ export function createExecutionStore(options = {}) {
         problems: normalizeProblems(input.problems),
       };
       running.set(record.id, record);
+      lastBegunId = record.id;
       emit('execution.started', { record: cloneRecord(record) });
       return cloneRecord(record);
     },
@@ -107,14 +109,7 @@ export function createExecutionStore(options = {}) {
   };
 
   function currentRecord() {
-    // `running` is a Map, so insertion order is preserved across deletes:
-    // the last entry is always the most recently begun execution that is
-    // still running, even if it wasn't the most recently begun overall.
-    let mostRecentlyBegunStillRunning = null;
-    for (const record of running.values()) {
-      mostRecentlyBegunStillRunning = record;
-    }
-    return mostRecentlyBegunStillRunning;
+    return running.get(lastBegunId) || null;
   }
 
   function finalize(id, status, response, problems) {
