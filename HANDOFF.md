@@ -1,6 +1,6 @@
 # OpaDeck Handoff
 
-Last updated: 2026-09-20 (JST, follow-up #6)
+Last updated: 2026-09-20 (JST)
 
 ## Repository
 
@@ -33,11 +33,10 @@ Last updated: 2026-09-20 (JST, follow-up #6)
 ## Issues
 
 Each `issues/ISSUE-00N-*.md` carries its own `## Status` footer with the
-resolving commit or PR. Recent work has landed as small `fix/issue-N-*` /
-`docs/*` PRs merged individually (see `git log --oneline` for the current
-list, most recently PRs up to #56). GitHub #57 /
-`issues/ISSUE-022-execution-store-current-overlapping-completion-order.md` is
-in flight as of this update (`fix/issue-57-execution-store-current-overlap`).
+resolving commit or PR. As of this update there are no open GitHub issues and
+no open PRs (`gh issue list --state open`, `gh pr list --state open`); recent
+work has landed as small `fix/issue-N-*` PRs merged individually (see
+`git log --oneline` for the current list, most recently PRs up to #51).
 
 ## Environment notes (this machine)
 
@@ -49,7 +48,7 @@ in flight as of this update (`fix/issue-57-execution-store-current-overlap`).
 
 ## Verification status
 
-- `npm test` (`node --test`): **153 tests passing**, 0 failing.
+- `npm test` (`node --test`): **151 tests passing**, 0 failing.
 - Showcase served over HTTP and the static module graph loads (200s).
 - Browser interaction is covered by a manual smoke-test checklist in
   `docs/en/IMPLEMENTATION.md` plus an automated headless smoke harness
@@ -63,22 +62,8 @@ in flight as of this update (`fix/issue-57-execution-store-current-overlap`).
    to cap the visible stack at 1. See `issues/ISSUE-010-*.md` follow-up #2.
    `showcase/app.js` still has its own hand-rolled result panel (it does not use
    `createWorkbench`); left as-is since that was out of this change's scope.
-2. ~~Decide whether to port the remaining vacant-service groups in
-   `examples/vacant-ops.opsui` or treat the 5-group sample as sufficient
-   coverage~~ — resolved: the 5-group sample is sufficient. It already exercises
-   every structural variant present in the source `table_data.js` (embedded
-   query URL + raw body + select query, pure REST path, same-URL
-   method-multiplexing, `fieldset`/`include` field reuse, presentation-only
-   attributes not represented in core); the remaining 9 groups repeat those same
-   patterns without adding new round-trip coverage. See `issues/ISSUE-010-*.md`
-   follow-up #3.
-3. ~~Document `fieldset` / `include` and result accumulation/dismiss~~ — resolved:
-   landed in `docs/{en,ja}/DSL.md` (fieldset/include) and
-   `docs/{en,ja}/CORE_MODEL.md` (accumulation/dismiss) — `CORE_MODEL.md` instead
-   of `COMPONENTS.md` because accumulate/dismiss is currently model-only (see
-   next item). See `issues/ISSUE-010-*.md` follow-up #4.
-4. ~~Add `.opsui` DSL syntax for `result { options { accumulate false } }`~~ —
-   resolved: `src/dsl/opsui.js` now parses `result { options { accumulate
-   <bool> } }` into `operation.result.options` (see `tests/opsui.test.js`);
-   documented in `docs/{en,ja}/DSL.md` and `docs/{en,ja}/CORE_MODEL.md`. See
-   `issues/ISSUE-010-*.md` follow-up #6.
+2. Decide whether to port the remaining vacant-service groups in
+   `examples/vacant-ops.opsui` (follow-up #3 in the same issue) or treat the
+   5-group sample as sufficient coverage.
+3. Document `fieldset` / `include` in `docs/*/DSL.md` and result
+   accumulation/dismiss in `docs/*/COMPONENTS.md` (follow-up #4).
